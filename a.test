@@ -1,84 +1,83 @@
 
+(int a; int b)range(int| y)
+{
+    decl int t;
+    t = a;
+    while t <= b
+    {
+        y <- t;
+        t <- t + 1;
+    }
+}
 
-        (int a; int b)range(int| y)
+(int| x)primes(int| y)
+{
+    while (1)
+    {
+        decl int t;
+        t <- ?x;
+        decl int i;
+        i <- 2;
+        while i < t
         {
-            decl int t;
-            t = a;
-            while t <= b
+            match (1)
             {
-                y <- t;
-                t <- t + 1;
+                1 : t % i = 0 {break;}
+            }
+            i = i + 1;
+        }
+        match i = t
+        {
+            0 {y <- t;}
+        }
+    }
+}
+
+(int| x)factor(int[]| y)
+{
+    while 1
+    {
+        decl int z;
+        z <- 0;
+        decl int[] t;
+        t <- int[50];
+        declbint i;
+        i <- ?x;
+        (2, i)range(k);
+        (k)primes(u);
+        while i != 1
+        {
+            decl int d;
+            d <- ?u;
+            while i % d = 0
+            {
+                i = i / d;
+                t[z] = d;
+                z = z + 1;
             }
         }
-    
-        (int| x)primes(int| y)
+        y <- t;
+    }
+}
+
+(char[] x)atoi@libc(int y) {}
+
+(char[]| s)main()
+{
+    (in)factor(out);
+    while (1)
+    {
+        decl char[] x;
+        x <- ?s;
+        (x)atoi@libc(y);
+        in <- y;
+        decl int k;
+        k <- ?out;
+        match z
         {
-            while (1)
-            {
-                decl int t;
-                t <- ?x;
-                decl int i;
-                i <- 2;
-                while i < t
-                {
-                    match (t % i = 0)
-                    {
-                        -1 -> {break;}
-                    }
-                    i = i + 1;
-                }
-                match i = t
-                {
-                    0 -> {y <- t;}
-                }
-            }
+            default p { ("%d", p)!printf(); }
         }
+    }
+}
 
-        (int| x)factor(int[]| y)
-        {
-            while 1
-            {
-                decl int z;
-                z <- 0;
-                decl int[] t;
-                t <- int[50];
-                declbint i;
-                i <- ?x;
-                (2, i)range(k);
-                (k)primes(u);
-                while i != 1
-                {
-                    let d = ?u;
-                    while i % d = 0
-                    {
-                        i = i / d;
-                        t[z] = d;
-                        z = z + 1;
-                    }
-                }
-                y <- t;
-            }
-        }
 
-        (char[] x)atoi@libc(int y) {}
-
-        (char[]| s)main()
-        {
-            (t)factor(z);
-            while (1)
-            {
-                decl char[] x;
-                x <- ?s;
-                (x)atoi@libc(y);
-                (in)factor(out);
-                in <- y;
-                decl int k;
-                k <- ?out;
-                match z
-                {
-                    default p -> { ("%d", p)!printf(); }
-                }
-            }
-        }
-
-    
