@@ -1,8 +1,8 @@
 
-(int a; int b)range(int| y)
+(i32 a; i32 b)range(i32| y)
 {
-    decl int t;
-    t = a;
+    decl i32 t;
+    t <- a;
     while t <= b
     {
         y <- t;
@@ -10,13 +10,13 @@
     }
 }
 
-(int| x)primes(int| y)
+(i32| x)primes(i32| y)
 {
     while (1)
     {
-        decl int t;
+        decl i32 t;
         t <- ?x;
-        decl int i;
+        decl i32 i;
         i <- 2;
         while i < t
         {
@@ -24,7 +24,7 @@
             {
                 1 : t % i = 0 {break;}
             }
-            i = i + 1;
+            i <- i + 1;
         }
         match i = t
         {
@@ -33,49 +33,49 @@
     }
 }
 
-(int| x)factor(int[]| y)
+(i32| x)factor(i32[]| y)
 {
     while 1
     {
-        decl int z;
+        decl i32 z;
         z <- 0;
-        decl int[] t;
-        t <- int[50];
-        declbint i;
+        decl i32[] t;
+        t <- i32[50];
+        decl i32 i;
         i <- ?x;
-        (2, i)range(k);
-        (k)primes(u);
+        ~ (2, i)range(k);
+        ~ (k)primes(u);
         while i != 1
         {
-            decl int d;
+            decl i32 d;
             d <- ?u;
             while i % d = 0
             {
-                i = i / d;
-                t[z] = d;
-                z = z + 1;
+                i <- i / d;
+                t[z] <- d;
+                z <- z + 1;
             }
         }
         y <- t;
     }
 }
 
-(char[] x)atoi@libc(int y) {}
+(byte[] x)atoi@libc(i32 y) {}
 
-(char[]| s)main()
+(byte[]| s)main()
 {
-    (in)factor(out);
+    ~ (in)factor(out);
     while (1)
     {
-        decl char[] x;
+        decl byte[] x;
         x <- ?s;
-        (x)atoi@libc(y);
+        ~ (x)atoi@libc(y);
         in <- y;
-        decl int k;
+        decl i32 k;
         k <- ?out;
         match z
         {
-            default p { ("%d", p)!printf(); }
+            default p { ~ ("%d", p)!printf(); }
         }
     }
 }

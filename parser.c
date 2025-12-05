@@ -62,6 +62,89 @@ struct type *new_type()
 }
 
 
+struct type *get_base_type(char *name)
+{
+    for (int i = 0; i < context.result->types_len; ++i)
+    {
+        switch (context.result->types[i]->type)
+        {
+            case VAR_SCALAR:
+                if (strcmp(context.result->types[i]->scalar.name, name) == 0)
+                {
+                    return context.result->types[i];
+                }
+                break;
+            case VAR_CLASS:
+                if (strcmp(context.result->types[i]->class.name, name) == 0)
+                {
+                    return context.result->types[i];
+                }
+                break;
+            case VAR_RECORD:
+                if (strcmp(context.result->types[i]->record.name, name) == 0)
+                {
+                    return context.result->types[i];
+                }
+                break;
+            default:
+                break;
+        }
+    }
+    return NULL;
+}
+
+
+struct type *get_complex_type(enum type_type type, struct type *base)
+{
+    for (int i = 0; i < context.result->types_len; ++i)
+    {
+        if (context.result->types[i]->type == type && context.result->types[i]->array.base == base)
+        {
+            return context.result->types[i];
+        }
+    }
+    struct type *res = new_type();
+    res->type = type;
+    switch (type)
+    {
+        case VAR_ARRAY:
+            res->array.base = base;
+            break;
+        case VAR_PIPE:
+            res->pipe.base = base;
+            break;
+        default:
+            printf("Error!\n");
+            exit(1);
+    }
+    return res;
+}
+
+
+struct type *get_variable(const char *name)
+{
+    for (int i = 0; i < context.curr.locals_len; ++i)
+    {
+        context.
+    }
+    struct type *res = new_type();
+    res->type = type;
+    switch (type)
+    {
+        case VAR_ARRAY:
+            res->array.base = base;
+            break;
+        case VAR_PIPE:
+            res->pipe.base = base;
+            break;
+        default:
+            printf("Error!\n");
+            exit(1);
+    }
+    return res;
+}
+
+
 struct variable *new_variable(struct type *type, char *name)
 {
     if (context.curr->locals_len >= context.curr->locals_alloc)
@@ -162,7 +245,7 @@ const char *skip_prefix(const char *s, const char *prefix)
 
 const char *skip_identifer(const char *s)
 {
-    while (isalpha(*s) || isdigit(*s) || *s == '_' || *s == '$' || *s == '@') { s++; }
+    while (isalpha(*s) || isdigit(*s) || *s == '_' || *s == '$' || *s == '@' || *s == '?') { s++; }
     return s;
 }
 
@@ -172,6 +255,16 @@ char *substring(const char *s, const char *e)
     memcpy(r, s, e - s);
     r[e - s] = 0;
     return r;
+}
+
+int all_digits(const char *s, const char *e)
+{
+    int res = 1;
+    for (const char *t = s; t < e; ++t)
+    {
+        res &= !!isdigit(*t);
+    }
+    return res;
 }
 
 
@@ -219,12 +312,13 @@ const char *parse_type(const char *s, struct type **ptype)
     s = type_end;
     printf("Type: %s\n", base_type);
 
-    struct type *type = *ptype = new_type();
-    /* find name in type table */
-    // TODO: this
-    type->type = VAR_SCALAR;
-    type->scalar.name = "int"; 
-    type->scalar.size = 4; 
+    struct type *type = get_base_type(base_type);
+    *ptype = type;
+
+    if (type == NULL)
+    {
+        log_error(s, "Unknown type: %s\n", base_type);
+    }
     
     
     /* 2. qualifers */
@@ -240,9 +334,7 @@ const char *parse_type(const char *s, struct type **ptype)
             s = end + 1;
             s = skip_spaces(s);
 
-            type = new_type();
-            type->type = VAR_ARRAY;
-            type->array.base = *ptype; 
+            type = get_complex_type(VAR_ARRAY, type);
             *ptype = type;
         }
         else if (starts_with(s, "|"))
@@ -251,9 +343,7 @@ const char *parse_type(const char *s, struct type **ptype)
             s = skip_spaces(s);
             printf("Pipe\n");
 
-            type = new_type();
-            type->type = VAR_PIPE;
-            type->array.base = *ptype; 
+            type = get_complex_type(VAR_PIPE, type);
             *ptype = type;
         }
         else
@@ -320,11 +410,291 @@ const char *parse_out(const char *s)
 
 const char *parse_expression(const char *s, const char *e, struct expression *expr)
 {
+    /* 1. skip spaces - if there is ( and ), then */
+    s = skip_spaces(s);
+    if (s > e) { s = e; }
+    while (e > s && isspace(e[-1])) { --e; }
+
+    if (*s == '(' && e[-1] == ')')
+    {
+        return parse_expression(s + 1, e - 1, expr);
+    }
+        
     char *exp = substring(s, e);
     printf("Expression: %s\n", exp);
-    
-    expr->type = EXPR_LITERAL_STRING;
-    expr->data = exp;
+
+    /* 1. parse groups, and signs between them */
+    {
+        int ballance = 0;
+        int string = 0;
+        const char *pos = NULL, *posend = NULL, *s_reserve = s;
+        int prior = -1;
+        while (s < e)
+        {
+            if (string)
+            {
+                if (*s == '\\') { if (strchr("ntave", s[1]) == NULL) {log_error(s, "Unknown escaped character: <%c>", s[1]);} s += 2; }
+                else if (*s == '\"') { s++; string = 0; }
+            }
+            else
+            {
+                if (*s == '(') { s++; ballance++; }
+                else if (*s == ')') { s++; ballance--; }
+                else if (ballance == 0)
+                {
+                    /* try to parse operator */
+                         if (prior <= 999 && starts_with(s, "<-")) { pos = s; prior = 999; posend = s = skip_prefix(s, "<-"); }
+                         
+                    else if (prior <  250 && starts_with(s, "&&")) { pos = s; prior = 250; posend = s = skip_prefix(s, "&&"); }
+                    else if (prior <  249 && starts_with(s, "||")) { pos = s; prior = 249; posend = s = skip_prefix(s, "||"); }
+                    else if (prior <  248 && starts_with(s, "^^")) { pos = s; prior = 248; posend = s = skip_prefix(s, "^^"); }
+                    
+                    else if (prior <  200 && starts_with(s, "<=")) { pos = s; prior = 200; posend = s = skip_prefix(s, "<="); }
+                    else if (prior <  199 && starts_with(s, ">=")) { pos = s; prior = 199; posend = s = skip_prefix(s, ">="); }
+                    else if (prior <  198 && starts_with(s, "<>")) { pos = s; prior = 198; posend = s = skip_prefix(s, "<>"); }
+                    else if (prior <  197 && starts_with(s, "<")) { pos = s; prior = 197; posend = s = skip_prefix(s, "<"); }
+                    else if (prior <  196 && starts_with(s, ">")) { pos = s; prior = 196; posend = s = skip_prefix(s, ">"); }
+                    else if (prior <  195 && starts_with(s, "=")) { pos = s; prior = 195; posend = s = skip_prefix(s, "="); }
+                    
+                    else if (prior <  155 && starts_with(s, "-")) { pos = s; prior = 151; posend = s = skip_prefix(s, "-"); }
+                    else if (prior <  155 && starts_with(s, "+")) { pos = s; prior = 150; posend = s = skip_prefix(s, "+"); }
+                    
+                    else if (prior <  105 && starts_with(s, "*")) { pos = s; prior = 101; posend = s = skip_prefix(s, "*"); }
+                    else if (prior <  105 && starts_with(s, "/")) { pos = s; prior = 100; posend = s = skip_prefix(s, "/"); }
+                    
+                    else if (prior <  75 && starts_with(s, "&")) { pos = s; prior = 75; posend = s = skip_prefix(s, "&"); }
+                    else if (prior <  74 && starts_with(s, "|")) { pos = s; prior = 74; posend = s = skip_prefix(s, "|"); }
+                    else if (prior <  73 && starts_with(s, "^")) { pos = s; prior = 73; posend = s = skip_prefix(s, "^"); }
+
+                    else if (prior <  50 && starts_with(s, "!!")) { pos = s; prior = 50; posend = s = skip_prefix(s, "!!"); }
+                    else if (prior <  49 && starts_with(s, "!")) { pos = s; prior = 49; posend = s = skip_prefix(s, "!"); }
+                    
+                    else if (prior <  25 && starts_with(s, "?")) { pos = s; prior = 25; posend = s = skip_prefix(s, "?"); }
+                    else
+                    {
+                        s++;
+                    }
+                }
+            }
+        }
+        s = s_reserve;
+
+        switch (prior)
+        {
+            case -1:
+                /* term */
+                if (*s == '?')
+                {
+                    expr->type = EXPR_QUERY;
+                    expr->childs_len = 1;
+                    expr->childs[0] = new_expr();
+                    parse_expression(skip_prefix(s, "?"), e, expr->childs[0]);
+                }
+                else if (*s == '"' && e[-1] == '"')
+                {
+                    expr->type = EXPR_LITERAL_STRING;
+                    expr->childs_len = 0;
+                    expr->pdata = substring(s, e);
+                }
+                else if (all_digits(s, e))
+                {
+                    printf("IS INT: %s\n", substring(s, e));
+                    expr->type = EXPR_LITERAL_INT;
+                    expr->childs_len = 0;
+                    char *tmp = substring(s, e), *end;
+                    expr->idata = strtoll(tmp, &end, 10);
+                    if (*end != 0)
+                    {
+                        log_error(s, "strtoll can't parse integer <%s>\n", tmp);
+                    }
+                    free(tmp);
+                }
+                else
+                {
+                    expr->type = EXPR_VARIABLE;
+                    expr->childs_len = 0;
+                    char *tmp = substring(s, e);
+                    expr->pdata = get_variable(tmp);
+                    free(tmp);
+                }
+                break;
+            case 999:
+                expr->type = EXPR_PUSH;
+                expr->childs_len = 2;
+                expr->childs[0] = new_expr();
+                expr->childs[1] = new_expr();
+                parse_expression(s, pos, expr->childs[0]);
+                parse_expression(posend, e, expr->childs[1]);
+                break;
+            case 250:
+                expr->type = EXPR_OP;
+                expr->idata = OP_AND;
+                expr->childs_len = 2;
+                expr->childs[0] = new_expr();
+                expr->childs[1] = new_expr();
+                parse_expression(s, pos, expr->childs[0]);
+                parse_expression(posend, e, expr->childs[1]);
+                break;
+            case 249:
+                expr->type = EXPR_OP;
+                expr->idata = OP_OR;
+                expr->childs_len = 2;
+                expr->childs[0] = new_expr();
+                expr->childs[1] = new_expr();
+                parse_expression(s, pos, expr->childs[0]);
+                parse_expression(posend, e, expr->childs[1]);
+                break;
+            case 248:
+                expr->type = EXPR_OP;
+                expr->idata = OP_XOR;
+                expr->childs_len = 2;
+                expr->childs[0] = new_expr();
+                expr->childs[1] = new_expr();
+                parse_expression(s, pos, expr->childs[0]);
+                parse_expression(posend, e, expr->childs[1]);
+                break;
+            case 200:
+                expr->type = EXPR_OP;
+                expr->idata = OP_LE;
+                expr->childs_len = 2;
+                expr->childs[0] = new_expr();
+                expr->childs[1] = new_expr();
+                parse_expression(s, pos, expr->childs[0]);
+                parse_expression(posend, e, expr->childs[1]);
+                break;
+            case 199:
+                expr->type = EXPR_OP;
+                expr->idata = OP_GE;
+                expr->childs_len = 2;
+                expr->childs[0] = new_expr();
+                expr->childs[1] = new_expr();
+                parse_expression(s, pos, expr->childs[0]);
+                parse_expression(posend, e, expr->childs[1]);
+                break;
+            case 198:
+                expr->type = EXPR_OP;
+                expr->idata = OP_NE;
+                expr->childs_len = 2;
+                expr->childs[0] = new_expr();
+                expr->childs[1] = new_expr();
+                parse_expression(s, pos, expr->childs[0]);
+                parse_expression(posend, e, expr->childs[1]);
+                break;
+            case 197:
+                expr->type = EXPR_OP;
+                expr->idata = OP_LT;
+                expr->childs_len = 2;
+                expr->childs[0] = new_expr();
+                expr->childs[1] = new_expr();
+                parse_expression(s, pos, expr->childs[0]);
+                parse_expression(posend, e, expr->childs[1]);
+                break;
+            case 196:
+                expr->type = EXPR_OP;
+                expr->idata = OP_GT;
+                expr->childs_len = 2;
+                expr->childs[0] = new_expr();
+                expr->childs[1] = new_expr();
+                parse_expression(s, pos, expr->childs[0]);
+                parse_expression(posend, e, expr->childs[1]);
+                break;
+            case 195:
+                expr->type = EXPR_OP;
+                expr->idata = OP_EQ;
+                expr->childs_len = 2;
+                expr->childs[0] = new_expr();
+                expr->childs[1] = new_expr();
+                parse_expression(s, pos, expr->childs[0]);
+                parse_expression(posend, e, expr->childs[1]);
+                break;
+            case 151:
+                expr->type = EXPR_OP;
+                expr->idata = OP_ADD;
+                expr->childs_len = 2;
+                expr->childs[0] = new_expr();
+                expr->childs[1] = new_expr();
+                parse_expression(s, pos, expr->childs[0]);
+                parse_expression(posend, e, expr->childs[1]);
+                break;
+            case 150:
+                expr->type = EXPR_OP;
+                expr->idata = OP_SUB;
+                expr->childs_len = 2;
+                expr->childs[0] = new_expr();
+                expr->childs[1] = new_expr();
+                parse_expression(s, pos, expr->childs[0]);
+                parse_expression(posend, e, expr->childs[1]);
+                break;
+            case 101:
+                expr->type = EXPR_OP;
+                expr->idata = OP_MUL;
+                expr->childs_len = 2;
+                expr->childs[0] = new_expr();
+                expr->childs[1] = new_expr();
+                parse_expression(s, pos, expr->childs[0]);
+                parse_expression(posend, e, expr->childs[1]);
+                break;
+            case 100:
+                expr->type = EXPR_OP;
+                expr->idata = OP_DIV;
+                expr->childs_len = 2;
+                expr->childs[0] = new_expr();
+                expr->childs[1] = new_expr();
+                parse_expression(s, pos, expr->childs[0]);
+                parse_expression(posend, e, expr->childs[1]);
+                break;
+            case 75:
+                expr->type = EXPR_OP;
+                expr->idata = OP_BAND;
+                expr->childs_len = 2;
+                expr->childs[0] = new_expr();
+                expr->childs[1] = new_expr();
+                parse_expression(s, pos, expr->childs[0]);
+                parse_expression(posend, e, expr->childs[1]);
+                break;
+            case 74:
+                expr->type = EXPR_OP;
+                expr->idata = OP_BOR;
+                expr->childs_len = 2;
+                expr->childs[0] = new_expr();
+                expr->childs[1] = new_expr();
+                parse_expression(s, pos, expr->childs[0]);
+                parse_expression(posend, e, expr->childs[1]);
+                break;
+            case 73:
+                expr->type = EXPR_OP;
+                expr->idata = OP_BXOR;
+                expr->childs_len = 2;
+                expr->childs[0] = new_expr();
+                expr->childs[1] = new_expr();
+                parse_expression(s, pos, expr->childs[0]);
+                parse_expression(posend, e, expr->childs[1]);
+                break;
+            case 50:
+                expr->type = EXPR_OP;
+                expr->idata = OP_NOT;
+                expr->childs_len = 1;
+                expr->childs[0] = new_expr();
+                parse_expression(posend, pos, expr->childs[0]);
+                break;
+            case 49:
+                expr->type = EXPR_OP;
+                expr->idata = OP_BNOT;
+                expr->childs_len = 1;
+                expr->childs[0] = new_expr();
+                parse_expression(posend, pos, expr->childs[0]);
+                break;
+            case 25:
+                expr->type = EXPR_QUERY;
+                expr->childs_len = 1;
+                expr->childs[0] = new_expr();
+                parse_expression(posend, e, expr->childs[0]);
+                break;
+            default:
+                printf("Error [at line %d]\n", __LINE__);
+                exit(1);
+        }
+    }
     
     return e;
 }
@@ -501,7 +871,7 @@ const char *parse_stmt(const char *s)
         const char *e = skip_including(s, ";");
         return e;
     }
-    else if (starts_with(s, "decl"))
+    else if (starts_with(s, "decl "))
     {
         /* not generate stmt */
         const char *e = skip_to(s, ";");
@@ -512,6 +882,11 @@ const char *parse_stmt(const char *s)
         s = parse_declaration(s, e);
         s = e + 1;
         return s;
+    }
+    else if (starts_with(s, "~"))
+    {
+        // TODO
+        return skip_to(s, ";") + 1;
     }
     else
     {
@@ -635,6 +1010,41 @@ struct program *parse(const char *s)
     filename = "a.test";
 
     context.result = calloc(1, sizeof(*context.result));
+
+    {
+        /* default types */
+        struct type *t;
+
+        t = new_type();
+        t->type = VAR_SCALAR;
+        t->scalar.name = "i32";
+        t->scalar.size = 4;
+
+        t = new_type();
+        t->type = VAR_SCALAR;
+        t->scalar.name = "i16";
+        t->scalar.size = 2;
+
+        t = new_type();
+        t->type = VAR_SCALAR;
+        t->scalar.name = "i8";
+        t->scalar.size = 2;
+        
+        t = new_type();
+        t->type = VAR_SCALAR;
+        t->scalar.name = "dword";
+        t->scalar.size = 4;
+        
+        t = new_type();
+        t->type = VAR_SCALAR;
+        t->scalar.name = "word";
+        t->scalar.size = 2;
+        
+        t = new_type();
+        t->type = VAR_SCALAR;
+        t->scalar.name = "byte";
+        t->scalar.size = 1;
+    }
     
     /* 1. read all functions */
     while (1)
@@ -649,6 +1059,11 @@ struct program *parse(const char *s)
         {
             break;
         }
+    }
+
+    if (log_count != 0)
+    {
+        return NULL;
     }
 
     return context.result;

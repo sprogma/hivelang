@@ -13,6 +13,11 @@ int main()
     struct program *res = parse(s);
     printf("Parsed!\n");
 
+    if (res == NULL)
+    {
+        return 1;
+    }
+
     build_workflow(res);
     
     return 0;

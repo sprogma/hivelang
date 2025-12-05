@@ -10,20 +10,20 @@ static void print_type(struct type *t)
     switch (t->type)
     {
         case VAR_SCALAR:
-            printf("Scalar %s [size %lld] ", t->scalar.name, t->size);
+            printf("Scalar %s [size %lld] ", t->scalar.name, size_of_type(t));
             break;
         case VAR_CLASS:
-            printf("Class %s [size %lld] ", t->class.name, t->size);
+            printf("Class %s [size %lld] ", t->class.name, size_of_type(t));
             break;
         case VAR_RECORD:
-            printf("Record %s [size %lld] ", t->record.name, t->size);
+            printf("Record %s [size %lld] ", t->record.name, size_of_type(t));
             break;
         case VAR_ARRAY:
-            printf("Array [size %lld] of type ", t->size);
+            printf("Array [size %lld] of type ", size_of_type(t));
             print_type(t->array.base);
             break;
         case VAR_PIPE:
-            printf("Pipe [size %lld] of type ", t->size);
+            printf("Pipe [size %lld] of type ", size_of_type(t));
             print_type(t->pipe.base);
             break;
     }
@@ -37,13 +37,62 @@ static void print_variable(struct variable *v)
     printf("\n");
 }
 
+
+static void print_op(enum op_type t)
+{
+    switch (t)
+    {
+        case OP_ADD: printf(" ADD "); break;
+        case OP_SUB: printf(" SUB "); break;
+        case OP_MUL: printf(" MUL "); break;
+        case OP_DIV: printf(" DIV "); break;
+
+        case OP_AND: printf(" AND "); break;
+        case OP_NOT: printf(" NOT "); break;
+        case OP_OR: printf(" OR "); break;
+        case OP_XOR: printf(" XOR "); break;
+
+        case OP_BAND: printf(" BAND "); break;
+        case OP_BNOT: printf(" BNOT "); break;
+        case OP_BOR: printf(" BOR "); break;
+        case OP_BXOR: printf(" BXOR "); break;
+
+        case OP_LT: printf(" LT "); break;
+        case OP_LE: printf(" LE "); break;
+        case OP_GT: printf(" GT "); break;
+        case OP_GE: printf(" GE "); break;
+        case OP_EQ: printf(" EQ "); break;
+        case OP_NE: printf(" NE "); break;
+    }
+    return;
+}
+
+
 static void print_expression(struct expression *e)
 {
-    printf("[Expr %d]", e->type);
-    for (int i = 0; i < e->childs_len; ++i)
+    printf("(");
+    switch (e->type)
     {
-        print_expression(e->childs[i]);
+        case EXPR_LITERAL_INT:
+            printf("%lld", e->idata);
+            break;
+        case EXPR_LITERAL_STRING:
+            printf("\"%s\"", (char *)e->pdata);
+            break;
+        case EXPR_VARIABLE:
+            printf("%s", ((struct variable *)e->pdata)->name);
+            break;
+        case EXPR_QUERY:
+            printf("?"); print_expression(e->childs[0]);
+            break;
+        case EXPR_PUSH:
+            print_expression(e->childs[0]); printf(" <- "); print_expression(e->childs[1]);
+            break;
+        case EXPR_OP:
+            print_expression(e->childs[0]); print_op((enum op_type)e->idata); print_expression(e->childs[1]);
+            break;
     }
+    printf(")");
 }
 
 static void print_code_indented(struct block *b, int indent)

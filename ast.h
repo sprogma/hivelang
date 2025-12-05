@@ -48,7 +48,6 @@ struct type_class
 struct type
 {
     enum type_type type;
-    size_t size;
     union
     {
         struct type_scalar scalar;
@@ -69,31 +68,41 @@ struct variable
     char *name;
 };
 
-
 enum expression_type
 {
     EXPR_LITERAL_INT,
     EXPR_LITERAL_STRING,
     EXPR_VARIABLE,
-    
-    EXPR_OP_ADD,
-    EXPR_OP_SUB,
-    EXPR_OP_MUL,
-    EXPR_OP_DIV,
-    EXPR_OP_MINUS,
-    EXPR_OP_PLUS,
-    
-    EXPR_OP_AND,
-    EXPR_OP_OR,
-    EXPR_OP_XOR,
-    EXPR_OP_NOT,
-    
-    EXPR_OP_BAND,
-    EXPR_OP_BOR,
-    EXPR_OP_BXOR,
-    EXPR_OP_BNOT,
+    EXPR_QUERY,
+    EXPR_PUSH,
+    EXPR_OP,
 };
 
+
+enum op_type
+{
+    OP_ADD,
+    OP_SUB,
+    OP_MUL,
+    OP_DIV,
+    
+    OP_AND,
+    OP_NOT,
+    OP_OR,
+    OP_XOR,
+    
+    OP_BAND,
+    OP_BNOT,
+    OP_BOR,
+    OP_BXOR,
+    
+    OP_LT,
+    OP_LE,
+    OP_GT,
+    OP_GE,
+    OP_EQ,
+    OP_NE,
+};
 
 struct expression
 {
@@ -101,7 +110,11 @@ struct expression
     struct expression *childs[2];
     int64_t            childs_len;
     /* for literals */
-    void *data;
+    union
+    {
+        void *pdata;
+        int64_t idata;
+    };
 };
 
 
