@@ -61,7 +61,6 @@ struct type
 
 size_t size_of_type(struct type *t);
 
-
 struct variable
 {
     struct type *type;
@@ -72,6 +71,7 @@ enum expression_type
 {
     EXPR_LITERAL_INT,
     EXPR_LITERAL_STRING,
+    EXPR_LITERAL_ARRAY,
     EXPR_ARRAY_INDEX,
     EXPR_VARIABLE,
     EXPR_QUERY,
@@ -208,5 +208,8 @@ struct program
 
 struct program *parse(const char *s);
 struct type *get_expr_type(struct program *p, struct expression *e);
+int is_lvalue(struct program *p, struct expression *e);
+struct type *get_base_type(char *name);
+struct type *get_complex_type(enum type_type type, struct type *base);
 
 #endif

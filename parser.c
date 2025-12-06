@@ -308,6 +308,101 @@ void log_error(const char *s, const char *format, ...)
 }
 
 
+void validate_expression(const char *s, struct expression *expr)
+{
+    switch (expr->type)
+    {
+        case EXPR_LITERAL_INT:
+            return;
+        case EXPR_LITERAL_STRING:
+            return;
+        case EXPR_LITERAL_ARRAY:
+            return;
+        case EXPR_VARIABLE:
+            return;
+        case EXPR_ARRAY_INDEX:
+        {
+            validate_expression(s, expr->childs[0]);
+            validate_expression(s, expr->childs[1]);
+            struct type *t1 = get_expr_type(context.result, expr->childs[0]);
+            struct type *t2 = get_expr_type(context.result, expr->childs[1]);
+            if (t1->type != VAR_ARRAY)
+            {
+                log_error(s, "Error: Index of something that isn't array\n");
+            }
+            if (t2->type != VAR_SCALAR && 
+                                    strcmp(t2->scalar.name, "i8") != 0 && 
+                                    strcmp(t2->scalar.name, "i16") != 0 && 
+                                    strcmp(t2->scalar.name, "i32") != 0 && 
+                                    strcmp(t2->scalar.name, "i64") != 0 && 
+                                    strcmp(t2->scalar.name, "byte") != 0 && 
+                                    strcmp(t2->scalar.name, "word") != 0 && 
+                                    strcmp(t2->scalar.name, "dword") != 0 && 
+                                    strcmp(t2->scalar.name, "qword") != 0)
+            {
+                log_error(s, "Error: Index from array not using integer type\n");
+            }
+            return;
+        }
+        case EXPR_QUERY:
+        {
+            validate_expression(s, expr->childs[0]);
+            struct type *t = get_expr_type(context.result, expr->childs[0]);
+            if (t->type != VAR_PIPE && t->type != VAR_ARRAY)
+            {
+                log_error(s, "Error: Query of something that isn't pipe or array\n");
+            }
+            return;
+        }
+        case EXPR_PUSH:
+        {
+            validate_expression(s, expr->childs[0]);
+            validate_expression(s, expr->childs[1]);
+            struct type *t1 = get_expr_type(context.result, expr->childs[0]);
+            struct type *t2 = get_expr_type(context.result, expr->childs[1]);
+            if (t1 == t2)
+            {
+                if (!is_lvalue(context.result, expr->childs[0]))
+                {
+                    log_error(s, "Error: Push to not lvalue\n");
+                }
+                return;
+            }
+            if (t1->type == VAR_PIPE && t2 == t1->pipe.base)
+            {
+                return;
+            }
+            log_error(s, "Error: Push have different types, and not pushing to pipe of same basetype\n");
+        }
+        case EXPR_OP:
+        {
+            if (expr->childs_len == 0)
+            {
+                log_error(s, "Error: EXPR_OP node without childs\n");
+            }
+            if (expr->childs_len == 1)
+            {
+                validate_expression(s, expr->childs[0]);
+                return;
+            }
+            if (expr->childs_len == 2)
+            {
+                validate_expression(s, expr->childs[0]);
+                validate_expression(s, expr->childs[1]);
+                struct type *t1 = get_expr_type(context.result, expr->childs[0]);
+                struct type *t2 = get_expr_type(context.result, expr->childs[1]);
+                if (t1 != t2)
+                {
+                    log_error(s, "Error: Operator applied to 2 different types\n");
+                }
+                return;
+            }
+        }
+
+    }
+}
+
+
 const char *parse_type(const char *s, struct type **ptype)
 {
     /* 1. type */
@@ -450,6 +545,8 @@ const char *parse_expression(const char *s, const char *e, struct expression *ex
             {
                 if (*s == '(') { s++; ballance++; }
                 else if (*s == ')') { s++; ballance--; }
+                else if (*s == '[') { s++; ballance++; }
+                else if (*s == ']') { s++; ballance--; }
                 else if (ballance == 0)
                 {
                     /* try to parse operator */
@@ -466,8 +563,8 @@ const char *parse_expression(const char *s, const char *e, struct expression *ex
                     else if (prior <  196 && starts_with(s, ">")) { pos = s; prior = 196; posend = s = skip_prefix(s, ">"); }
                     else if (prior <  195 && starts_with(s, "=")) { pos = s; prior = 195; posend = s = skip_prefix(s, "="); }
                     
-                    else if (prior <  155 && starts_with(s, "-")) { pos = s; prior = 151; posend = s = skip_prefix(s, "-"); }
-                    else if (prior <  155 && starts_with(s, "+")) { pos = s; prior = 150; posend = s = skip_prefix(s, "+"); }
+                    else if (prior <  155 && starts_with(s, "+")) { pos = s; prior = 151; posend = s = skip_prefix(s, "+"); }
+                    else if (prior <  155 && starts_with(s, "-")) { pos = s; prior = 150; posend = s = skip_prefix(s, "-"); }
                     
                     else if (prior <  105 && starts_with(s, "*")) { pos = s; prior = 102; posend = s = skip_prefix(s, "*"); }
                     else if (prior <  105 && starts_with(s, "/")) { pos = s; prior = 101; posend = s = skip_prefix(s, "/"); }
@@ -486,7 +583,16 @@ const char *parse_expression(const char *s, const char *e, struct expression *ex
                         s++;
                     }
                 }
+                else
+                {
+                    s++;
+                }
             }
+        }
+
+        if (ballance != 0)
+        {
+            log_error(s, "Error: not closed ( [ or not opened ) ] detected\n");
         }
         s = s_reserve;
 
@@ -510,14 +616,37 @@ const char *parse_expression(const char *s, const char *e, struct expression *ex
                 else if (e[-1] == ']')
                 {
                     const char *brace = e;
-                    while ()
+                    {
+                        int ballance = 0, string = 0;
+                        while (brace > s && (*brace != '[' || string == 1 || ballance != 0))
+                        {
+                            if (string)
+                            {
+                                     if (brace[-2] == '\\') { brace -= 2; }
+                                else if (brace[-1] == '"') { brace--; string = 0; }
+                            }
+                            else
+                            {
+                                     if (brace[-1] == ')') { ballance++; brace--; }
+                                else if (brace[-1] == '(') { ballance--; brace--; }
+                                else if (brace[-1] == ']') { ballance++; brace--; }
+                                else if (brace[-1] == '[') { ballance--; brace--; }
+                                else { brace--; }
+                            }
+                        }
+                    }
+                    if (*brace != '[')
+                    {
+                        log_error(e - 1, "Found not opened ]\n");
+                        return e;
+                    }
                     printf("IS ARRAY SUBSCR.\n");
                     expr->type = EXPR_ARRAY_INDEX;
                     expr->childs_len = 2;
                     expr->childs[0] = new_expr();
                     expr->childs[1] = new_expr();
-                    parse_expression(s, pos, expr->childs[0]);
-                    parse_expression(posend, e, expr->childs[1]);
+                    parse_expression(s, brace, expr->childs[0]);
+                    parse_expression(brace + 1, e - 1, expr->childs[1]);
                 }
                 else if (all_digits(s, e))
                 {
@@ -531,6 +660,23 @@ const char *parse_expression(const char *s, const char *e, struct expression *ex
                         log_error(s, "strtoll can't parse integer <%s>\n", tmp);
                     }
                     free(tmp);
+                }
+                else if (skip_to(s, ":") < e)
+                {
+                    /* array allocation */
+                    const char *colon = skip_to(s, ":");
+                    struct type *type;
+                    const char *res = parse_type(s, &type);
+                    res = skip_spaces(res);
+                    if (res != colon)
+                    {
+                        log_error(res, "In array allocation left subexpression isn't type\n");
+                        return e;
+                    }
+                    expr->type = EXPR_LITERAL_ARRAY;
+                    expr->pdata = type;
+                    expr->childs[0] = new_expr();
+                    parse_expression(colon + 1, e, expr->childs[0]);
                 }
                 else
                 {
@@ -635,6 +781,10 @@ const char *parse_match_branch(const char *s, struct statement *stmt)
     stmt->match.cases_default[id] = NULL;
     stmt->match.cases_guard[id] = NULL;
 
+    /* open new block, to declare variables in it */
+    struct block *restore = context.curr;
+    stmt->match.cases_block[id] = context.curr = new_block();
+    
     if (starts_with(s, "default "))
     {
         s = skip_prefix(s, "default");
@@ -647,17 +797,25 @@ const char *parse_match_branch(const char *s, struct statement *stmt)
         {
             stmt->match.cases_guard[id] = new_expr();
             parse_expression(grd, e, stmt->match.cases_guard[id]);
+            /* validate result */
+            validate_expression(grd, stmt->match.cases_guard[id]);
             
             char *guard = substring(grd, e);
             printf("Guard: %s\n", guard);
             e = grd - 1;
         }
-        
-        char *name = substring(s, e);
+
+        const char *end = e;
+        while (s < end && isspace(end[-1])) { end--; }
+        if (s == end)
+        {
+            log_error(s, "Error: empty default variable name\n");
+        }
+        char *name = substring(s, end);
         
         stmt->match.cases_default[id] = new_variable(get_expr_type(context.result, stmt->match.expr), name);
 
-        printf("Default named: %s\n", name);
+        printf("Default named: <%s>\n", name);
     }
     else
     {
@@ -669,6 +827,8 @@ const char *parse_match_branch(const char *s, struct statement *stmt)
         {
             stmt->match.cases_guard[id] = new_expr();
             parse_expression(grd, e, stmt->match.cases_guard[id]);
+            /* validate result */
+            validate_expression(grd, stmt->match.cases_guard[id]);
             
             char *guard = substring(grd, e);
             printf("Guard: %s\n", guard);
@@ -677,6 +837,8 @@ const char *parse_match_branch(const char *s, struct statement *stmt)
         
         stmt->match.cases_literal[id] = new_expr();
         parse_expression(s, e, stmt->match.cases_literal[id]);
+        /* validate result */
+        validate_expression(s, stmt->match.cases_literal[id]);
 
         char *branch = substring(s, e);
 
@@ -685,8 +847,6 @@ const char *parse_match_branch(const char *s, struct statement *stmt)
     
     s = skip_to(s, "{");
     
-    struct block *restore = context.curr;
-    stmt->match.cases_block[id] = context.curr = new_block();
     s = parse_stmt_block(s);
     context.curr = restore;
     return s;
@@ -695,6 +855,8 @@ const char *parse_match_branch(const char *s, struct statement *stmt)
 
 void parse_worker_call(const char *s, const char *e, struct statement *stmt)
 {
+    (void)e;
+    
     s = skip_spaces(s);
 
     if (*s != '(')
@@ -735,6 +897,8 @@ void parse_worker_call(const char *s, const char *e, struct statement *stmt)
         return;
     }
     free(name);
+
+    stmt->worker.worker = w;
     
     /* find all input variables */
     {
@@ -746,6 +910,8 @@ void parse_worker_call(const char *s, const char *e, struct statement *stmt)
             if (end > end_brace) { end = end_brace; }
             struct expression *expr = new_expr();
             parse_expression(pos, end, expr);
+            /* validate result */
+            validate_expression(pos, expr);
             stmt->worker.inputs[id] = expr;
             pos = end + 1;
             id++;
@@ -888,6 +1054,8 @@ const char *parse_stmt(const char *s)
         stmt->type = STMT_EXPRESSION;
         stmt->expr = new_expr();
         s = parse_expression(s, e, stmt->expr);
+        /* validate result */
+        validate_expression(s, stmt->expr);
         s = e + 1;
         return s;
     }
@@ -1004,6 +1172,11 @@ struct program *parse(const char *s)
 
         t = new_type();
         t->type = VAR_SCALAR;
+        t->scalar.name = "i64";
+        t->scalar.size = 8;
+
+        t = new_type();
+        t->type = VAR_SCALAR;
         t->scalar.name = "i32";
         t->scalar.size = 4;
 
@@ -1015,7 +1188,12 @@ struct program *parse(const char *s)
         t = new_type();
         t->type = VAR_SCALAR;
         t->scalar.name = "i8";
-        t->scalar.size = 2;
+        t->scalar.size = 1;
+        
+        t = new_type();
+        t->type = VAR_SCALAR;
+        t->scalar.name = "qword";
+        t->scalar.size = 8;
         
         t = new_type();
         t->type = VAR_SCALAR;

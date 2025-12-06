@@ -1,7 +1,7 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "ast.h"
-#include "workflow.h"
+#include "program_build.h"
 
 int main()
 {
@@ -18,7 +18,7 @@ int main()
         return 1;
     }
 
-    build_workflow(res);
+    build_program(res);
     
     return 0;
 }

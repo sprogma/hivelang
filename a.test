@@ -40,7 +40,7 @@
         decl i32 z;
         z <- 0;
         decl i32[] t;
-        t <- i32[50];
+        t <- i32:50;
         decl i32 i;
         i <- ?x;
         ~ (2, i)range(k);
@@ -61,8 +61,9 @@
 }
 
 (byte[] x)atoi@libc(i32 y) {}
+(i32 x)print() {}
 
-(byte[]| s)main()
+(byte[]| s)main(i32 res)
 {
     decl i32| in;
     ~ (in)factor(out);
@@ -72,13 +73,17 @@
         x <- ?s;
         ~ (x)atoi@libc(y);
         in <- y;
-        decl i32 k;
+        decl i32[] k;
         k <- ?out;
-        match k
+        decl i32 i;
+        i <- 0;
+        while (i < ?k)
         {
-            default p { ~ ("%d", p)printf(); }
+            ~ (k[i])print();
+            i <- i + 1;
         }
     }
+    res <- 0;
 }
 
 
