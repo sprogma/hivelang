@@ -57,6 +57,7 @@ struct type *new_type()
         context.result->types = realloc(context.result->types, sizeof(*context.result->types) * context.result->types_alloc);
     }
     struct type *x = calloc(1, sizeof(*x));
+    x->id = context.result->types_len + 1;
     context.result->types[context.result->types_len++] = x;
     return x;
 }
@@ -166,6 +167,7 @@ struct variable *new_variable(struct type *type, char *name)
     struct variable *x = calloc(1, sizeof(*x));
     x->name = name;
     x->type = type;
+    x->id = context.result->variable_id++;
     context.curr->locals[context.curr->locals_len++] = x;
     return x;
 }
@@ -200,6 +202,7 @@ struct worker *new_worker()
     struct worker *res = calloc(1, sizeof(*res));
     context.result->workers[context.result->workers_len++] = res;
     memset(res, 0, sizeof(*res));
+    res->id = context.result->workers_len + 1;
     return res;
 }
 
