@@ -1,0 +1,144 @@
+Worker range
+Input   0: Var a of type: Scalar i32 [size 4] 
+Input   1: Var b of type: Scalar i32 [size 4] 
+Output  0: Var y of type: Pipe [size 8] of type Scalar i32 [size 4] 
+
+    Block 00001287EF2202C0 [parent 0000000000000000]
+    local  0: Var a of type: Scalar i32 [size 4] 
+    local  1: Var b of type: Scalar i32 [size 4] 
+    local  2: Var y of type: Pipe [size 8] of type Scalar i32 [size 4] 
+    local  3: Var t of type: Scalar i32 [size 4] 
+    ...
+    Expr:((t) <- (a))
+    Loop: guard: ((t) LE (b))
+    Block:
+        Block 00001287EF220320 [parent 00001287EF2202C0]
+        ...
+        Expr:((y) <- (t))
+        Expr:((t) <- ((t) ADD (1)))
+
+
+Worker primes
+Input   0: Var x of type: Pipe [size 8] of type Scalar i32 [size 4] 
+Output  0: Var y of type: Pipe [size 8] of type Scalar i32 [size 4] 
+
+    Block 00001287EF220380 [parent 0000000000000000]
+    local  0: Var x of type: Pipe [size 8] of type Scalar i32 [size 4] 
+    local  1: Var y of type: Pipe [size 8] of type Scalar i32 [size 4] 
+    ...
+    Loop: guard: (1)
+    Block:
+        Block 00001287EF2203E0 [parent 00001287EF220380]
+        local  0: Var t of type: Scalar i32 [size 4] 
+        local  1: Var i of type: Scalar i32 [size 4] 
+        ...
+        Expr:((t) <- (?(x)))
+        Expr:((i) <- (2))
+        Loop: guard: ((i) LT (t))
+        Block:
+            Block 00001287EF220440 [parent 00001287EF2203E0]
+            ...
+            Match: guard: (1)
+            cases:
+            case <(1)> where <(((t) MOD (i)) EQ (0))> then
+                Block 00001287EF2204A0 [parent 00001287EF220440]
+                ...
+                Break.
+            Expr:((i) <- ((i) ADD (1)))
+        Match: guard: ((i) EQ (t))
+        cases:
+        case <(0)> then
+            Block 00001287EF220500 [parent 00001287EF2203E0]
+            ...
+            Expr:((y) <- (t))
+
+
+Worker factor
+Input   0: Var x of type: Pipe [size 8] of type Scalar i32 [size 4] 
+Output  0: Var y of type: Pipe [size 8] of type Array [size 8] of type Scalar i32 [size 4] 
+
+    Block 00001287EF220560 [parent 0000000000000000]
+    local  0: Var x of type: Pipe [size 8] of type Scalar i32 [size 4] 
+    local  1: Var y of type: Pipe [size 8] of type Array [size 8] of type Scalar i32 [size 4] 
+    ...
+    Loop: guard: (1)
+    Block:
+        Block 00001287EF2205C0 [parent 00001287EF220560]
+        local  0: Var z of type: Scalar i32 [size 4] 
+        local  1: Var t of type: Array [size 8] of type Scalar i32 [size 4] 
+        local  2: Var i of type: Scalar i32 [size 4] 
+        local  3: Var k of type: Pipe [size 8] of type Scalar i32 [size 4] 
+        local  4: Var u of type: Pipe [size 8] of type Scalar i32 [size 4] 
+        ...
+        Expr:((z) <- (0))
+        Expr:((t) <- (<type at 000012A7EF220680>:(50)))
+        Expr:((i) <- (?(x)))
+        Call: range
+        Call: primes
+        Loop: guard: (((0) BNOT ) EQ (1))
+        Block:
+            Block 00001287EF2206E0 [parent 00001287EF2205C0]
+            local  0: Var d of type: Scalar i32 [size 4] 
+            ...
+            Expr:((d) <- (?(u)))
+            Loop: guard: (((i) MOD (d)) EQ (0))
+            Block:
+                Block 00001287EF220740 [parent 00001287EF2206E0]
+                ...
+                Expr:((i) <- ((i) DIV (d)))
+                Expr:(((t)[(z)]) <- (d))
+                Expr:((z) <- ((z) ADD (1)))
+        Expr:((y) <- (t))
+
+
+Worker atoi@libc
+Input   0: Var x of type: Array [size 8] of type Scalar byte [size 1] 
+Output  0: Var y of type: Scalar i32 [size 4] 
+
+    Block 00001287EF2207A0 [parent 0000000000000000]
+    local  0: Var x of type: Array [size 8] of type Scalar byte [size 1] 
+    local  1: Var y of type: Scalar i32 [size 4] 
+    ...
+
+
+Worker print
+Input   0: Var x of type: Scalar i32 [size 4] 
+
+    Block 00001287EF220800 [parent 0000000000000000]
+    local  0: Var x of type: Scalar i32 [size 4] 
+    ...
+
+
+Worker main
+Input   0: Var s of type: Pipe [size 8] of type Array [size 8] of type Scalar byte [size 1] 
+Output  0: Var res of type: Scalar i32 [size 4] 
+
+    Block 00001287EF2208C0 [parent 0000000000000000]
+    local  0: Var s of type: Pipe [size 8] of type Array [size 8] of type Scalar byte [size 1] 
+    local  1: Var res of type: Scalar i32 [size 4] 
+    local  2: Var in of type: Pipe [size 8] of type Scalar i32 [size 4] 
+    local  3: Var out of type: Pipe [size 8] of type Array [size 8] of type Scalar i32 [size 4] 
+    ...
+    Call: factor
+    Loop: guard: (1)
+    Block:
+        Block 00001287EF220920 [parent 00001287EF2208C0]
+        local  0: Var x of type: Array [size 8] of type Scalar byte [size 1] 
+        local  1: Var y of type: Scalar i32 [size 4] 
+        local  2: Var k of type: Array [size 8] of type Scalar i32 [size 4] 
+        local  3: Var i of type: Scalar i32 [size 4] 
+        ...
+        Expr:((x) <- (?(s)))
+        Call: atoi@libc
+        Expr:((in) <- (y))
+        Expr:((k) <- (?(out)))
+        Expr:((i) <- (0))
+        Loop: guard: ((i) LT (?(k)))
+        Block:
+            Block 00001287EF2209E0 [parent 00001287EF220920]
+            ...
+            Call: print
+            Expr:((i) <- ((i) ADD (1)))
+    Expr:((res) <- (0))
+
+
