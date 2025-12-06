@@ -46,6 +46,7 @@ static void print_op(enum op_type t)
         case OP_SUB: printf(" SUB "); break;
         case OP_MUL: printf(" MUL "); break;
         case OP_DIV: printf(" DIV "); break;
+        case OP_MOD: printf(" MOD "); break;
 
         case OP_AND: printf(" AND "); break;
         case OP_NOT: printf(" NOT "); break;
@@ -78,6 +79,9 @@ static void print_expression(struct expression *e)
             break;
         case EXPR_LITERAL_STRING:
             printf("\"%s\"", (char *)e->pdata);
+            break;
+        case EXPR_ARRAY_INDEX:
+            print_expression(e->childs[0]); printf("["); print_expression(e->childs[1]); printf("]");
             break;
         case EXPR_VARIABLE:
             printf("%s", ((struct variable *)e->pdata)->name);

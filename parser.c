@@ -121,27 +121,38 @@ struct type *get_complex_type(enum type_type type, struct type *base)
 }
 
 
-struct type *get_variable(const char *name)
+struct worker *get_worker(const char *name)
 {
-    for (int i = 0; i < context.curr.locals_len; ++i)
+    for (int i = 0; i < context.result->workers_len; ++i)
     {
-        context.
+        if (strcmp(context.result->workers[i]->name, name) == 0)
+        {
+            return context.result->workers[i];
+        }
     }
-    struct type *res = new_type();
-    res->type = type;
-    switch (type)
+    return NULL;
+}
+
+
+struct variable *get_variable_at(struct block *block, const char *name)
+{
+    for (int i = 0; i < block->locals_len; ++i)
     {
-        case VAR_ARRAY:
-            res->array.base = base;
-            break;
-        case VAR_PIPE:
-            res->pipe.base = base;
-            break;
-        default:
-            printf("Error!\n");
-            exit(1);
+        if (strcmp(block->locals[i]->name, name) == 0)
+        {
+            return block->locals[i];
+        }
     }
-    return res;
+    if (block->parent != NULL)
+    {
+        return get_variable_at(block->parent, name);
+    }
+    return NULL;
+}
+
+struct variable *get_variable(const char *name)
+{
+    return get_variable_at(context.curr, name);
 }
 
 
@@ -377,7 +388,6 @@ const char *parse_arg(const char *s)
     /* create variable */
     struct variable *var = new_variable(type, name);
     context.worker->inputs[context.worker->inputs_len++] = var;
-    printf("SET ARG ADDRESS: %p [%p=%s]\n", var, var->name, var->name);
         
     return s;
 }
@@ -459,8 +469,9 @@ const char *parse_expression(const char *s, const char *e, struct expression *ex
                     else if (prior <  155 && starts_with(s, "-")) { pos = s; prior = 151; posend = s = skip_prefix(s, "-"); }
                     else if (prior <  155 && starts_with(s, "+")) { pos = s; prior = 150; posend = s = skip_prefix(s, "+"); }
                     
-                    else if (prior <  105 && starts_with(s, "*")) { pos = s; prior = 101; posend = s = skip_prefix(s, "*"); }
-                    else if (prior <  105 && starts_with(s, "/")) { pos = s; prior = 100; posend = s = skip_prefix(s, "/"); }
+                    else if (prior <  105 && starts_with(s, "*")) { pos = s; prior = 102; posend = s = skip_prefix(s, "*"); }
+                    else if (prior <  105 && starts_with(s, "/")) { pos = s; prior = 101; posend = s = skip_prefix(s, "/"); }
+                    else if (prior <  105 && starts_with(s, "%")) { pos = s; prior = 100; posend = s = skip_prefix(s, "%"); }
                     
                     else if (prior <  75 && starts_with(s, "&")) { pos = s; prior = 75; posend = s = skip_prefix(s, "&"); }
                     else if (prior <  74 && starts_with(s, "|")) { pos = s; prior = 74; posend = s = skip_prefix(s, "|"); }
@@ -496,6 +507,18 @@ const char *parse_expression(const char *s, const char *e, struct expression *ex
                     expr->childs_len = 0;
                     expr->pdata = substring(s, e);
                 }
+                else if (e[-1] == ']')
+                {
+                    const char *brace = e;
+                    while ()
+                    printf("IS ARRAY SUBSCR.\n");
+                    expr->type = EXPR_ARRAY_INDEX;
+                    expr->childs_len = 2;
+                    expr->childs[0] = new_expr();
+                    expr->childs[1] = new_expr();
+                    parse_expression(s, pos, expr->childs[0]);
+                    parse_expression(posend, e, expr->childs[1]);
+                }
                 else if (all_digits(s, e))
                 {
                     printf("IS INT: %s\n", substring(s, e));
@@ -515,181 +538,47 @@ const char *parse_expression(const char *s, const char *e, struct expression *ex
                     expr->childs_len = 0;
                     char *tmp = substring(s, e);
                     expr->pdata = get_variable(tmp);
+                    if (expr->pdata == NULL)
+                    {
+                        log_error(s, "Error: Variable named <%s> isn't defined\n", tmp);
+                    }
                     free(tmp);
                 }
                 break;
-            case 999:
-                expr->type = EXPR_PUSH;
-                expr->childs_len = 2;
-                expr->childs[0] = new_expr();
-                expr->childs[1] = new_expr();
-                parse_expression(s, pos, expr->childs[0]);
+                
+            #define PARSE_2CHILD \
+                expr->childs_len = 2; \
+                expr->childs[0] = new_expr(); \
+                expr->childs[1] = new_expr(); \
+                parse_expression(s, pos, expr->childs[0]); \
                 parse_expression(posend, e, expr->childs[1]);
-                break;
-            case 250:
-                expr->type = EXPR_OP;
-                expr->idata = OP_AND;
-                expr->childs_len = 2;
-                expr->childs[0] = new_expr();
-                expr->childs[1] = new_expr();
-                parse_expression(s, pos, expr->childs[0]);
-                parse_expression(posend, e, expr->childs[1]);
-                break;
-            case 249:
-                expr->type = EXPR_OP;
-                expr->idata = OP_OR;
-                expr->childs_len = 2;
-                expr->childs[0] = new_expr();
-                expr->childs[1] = new_expr();
-                parse_expression(s, pos, expr->childs[0]);
-                parse_expression(posend, e, expr->childs[1]);
-                break;
-            case 248:
-                expr->type = EXPR_OP;
-                expr->idata = OP_XOR;
-                expr->childs_len = 2;
-                expr->childs[0] = new_expr();
-                expr->childs[1] = new_expr();
-                parse_expression(s, pos, expr->childs[0]);
-                parse_expression(posend, e, expr->childs[1]);
-                break;
-            case 200:
-                expr->type = EXPR_OP;
-                expr->idata = OP_LE;
-                expr->childs_len = 2;
-                expr->childs[0] = new_expr();
-                expr->childs[1] = new_expr();
-                parse_expression(s, pos, expr->childs[0]);
-                parse_expression(posend, e, expr->childs[1]);
-                break;
-            case 199:
-                expr->type = EXPR_OP;
-                expr->idata = OP_GE;
-                expr->childs_len = 2;
-                expr->childs[0] = new_expr();
-                expr->childs[1] = new_expr();
-                parse_expression(s, pos, expr->childs[0]);
-                parse_expression(posend, e, expr->childs[1]);
-                break;
-            case 198:
-                expr->type = EXPR_OP;
-                expr->idata = OP_NE;
-                expr->childs_len = 2;
-                expr->childs[0] = new_expr();
-                expr->childs[1] = new_expr();
-                parse_expression(s, pos, expr->childs[0]);
-                parse_expression(posend, e, expr->childs[1]);
-                break;
-            case 197:
-                expr->type = EXPR_OP;
-                expr->idata = OP_LT;
-                expr->childs_len = 2;
-                expr->childs[0] = new_expr();
-                expr->childs[1] = new_expr();
-                parse_expression(s, pos, expr->childs[0]);
-                parse_expression(posend, e, expr->childs[1]);
-                break;
-            case 196:
-                expr->type = EXPR_OP;
-                expr->idata = OP_GT;
-                expr->childs_len = 2;
-                expr->childs[0] = new_expr();
-                expr->childs[1] = new_expr();
-                parse_expression(s, pos, expr->childs[0]);
-                parse_expression(posend, e, expr->childs[1]);
-                break;
-            case 195:
-                expr->type = EXPR_OP;
-                expr->idata = OP_EQ;
-                expr->childs_len = 2;
-                expr->childs[0] = new_expr();
-                expr->childs[1] = new_expr();
-                parse_expression(s, pos, expr->childs[0]);
-                parse_expression(posend, e, expr->childs[1]);
-                break;
-            case 151:
-                expr->type = EXPR_OP;
-                expr->idata = OP_ADD;
-                expr->childs_len = 2;
-                expr->childs[0] = new_expr();
-                expr->childs[1] = new_expr();
-                parse_expression(s, pos, expr->childs[0]);
-                parse_expression(posend, e, expr->childs[1]);
-                break;
-            case 150:
-                expr->type = EXPR_OP;
-                expr->idata = OP_SUB;
-                expr->childs_len = 2;
-                expr->childs[0] = new_expr();
-                expr->childs[1] = new_expr();
-                parse_expression(s, pos, expr->childs[0]);
-                parse_expression(posend, e, expr->childs[1]);
-                break;
-            case 101:
-                expr->type = EXPR_OP;
-                expr->idata = OP_MUL;
-                expr->childs_len = 2;
-                expr->childs[0] = new_expr();
-                expr->childs[1] = new_expr();
-                parse_expression(s, pos, expr->childs[0]);
-                parse_expression(posend, e, expr->childs[1]);
-                break;
-            case 100:
-                expr->type = EXPR_OP;
-                expr->idata = OP_DIV;
-                expr->childs_len = 2;
-                expr->childs[0] = new_expr();
-                expr->childs[1] = new_expr();
-                parse_expression(s, pos, expr->childs[0]);
-                parse_expression(posend, e, expr->childs[1]);
-                break;
-            case 75:
-                expr->type = EXPR_OP;
-                expr->idata = OP_BAND;
-                expr->childs_len = 2;
-                expr->childs[0] = new_expr();
-                expr->childs[1] = new_expr();
-                parse_expression(s, pos, expr->childs[0]);
-                parse_expression(posend, e, expr->childs[1]);
-                break;
-            case 74:
-                expr->type = EXPR_OP;
-                expr->idata = OP_BOR;
-                expr->childs_len = 2;
-                expr->childs[0] = new_expr();
-                expr->childs[1] = new_expr();
-                parse_expression(s, pos, expr->childs[0]);
-                parse_expression(posend, e, expr->childs[1]);
-                break;
-            case 73:
-                expr->type = EXPR_OP;
-                expr->idata = OP_BXOR;
-                expr->childs_len = 2;
-                expr->childs[0] = new_expr();
-                expr->childs[1] = new_expr();
-                parse_expression(s, pos, expr->childs[0]);
-                parse_expression(posend, e, expr->childs[1]);
-                break;
-            case 50:
-                expr->type = EXPR_OP;
-                expr->idata = OP_NOT;
-                expr->childs_len = 1;
-                expr->childs[0] = new_expr();
-                parse_expression(posend, pos, expr->childs[0]);
-                break;
-            case 49:
-                expr->type = EXPR_OP;
-                expr->idata = OP_BNOT;
-                expr->childs_len = 1;
-                expr->childs[0] = new_expr();
-                parse_expression(posend, pos, expr->childs[0]);
-                break;
-            case 25:
-                expr->type = EXPR_QUERY;
-                expr->childs_len = 1;
-                expr->childs[0] = new_expr();
-                parse_expression(posend, e, expr->childs[0]);
-                break;
+                
+            #define PARSE_1CHILD \
+                expr->childs_len = 1; \
+                expr->childs[0] = new_expr(); \
+                parse_expression(posend, e, expr->childs[0]); \
+                
+            case 999: expr->type = EXPR_PUSH; PARSE_2CHILD break;
+            case 250: expr->type = EXPR_OP; expr->idata = OP_AND; PARSE_2CHILD break;
+            case 249: expr->type = EXPR_OP; expr->idata = OP_OR; PARSE_2CHILD break;
+            case 248: expr->type = EXPR_OP; expr->idata = OP_XOR; PARSE_2CHILD break;
+            case 200: expr->type = EXPR_OP; expr->idata = OP_LE; PARSE_2CHILD break;
+            case 199: expr->type = EXPR_OP; expr->idata = OP_GE; PARSE_2CHILD break;
+            case 198: expr->type = EXPR_OP; expr->idata = OP_NE; PARSE_2CHILD break;
+            case 197: expr->type = EXPR_OP; expr->idata = OP_LT; PARSE_2CHILD break;
+            case 196: expr->type = EXPR_OP; expr->idata = OP_GT; PARSE_2CHILD break;
+            case 195: expr->type = EXPR_OP; expr->idata = OP_EQ; PARSE_2CHILD break;
+            case 151: expr->type = EXPR_OP; expr->idata = OP_ADD; PARSE_2CHILD break;
+            case 150: expr->type = EXPR_OP; expr->idata = OP_SUB; PARSE_2CHILD break;
+            case 102: expr->type = EXPR_OP; expr->idata = OP_MUL; PARSE_2CHILD break;
+            case 101: expr->type = EXPR_OP; expr->idata = OP_DIV; PARSE_2CHILD break;
+            case 100: expr->type = EXPR_OP; expr->idata = OP_MOD; PARSE_2CHILD break;
+            case 75:  expr->type = EXPR_OP; expr->idata = OP_BAND; PARSE_2CHILD break;
+            case 74:  expr->type = EXPR_OP; expr->idata = OP_BOR; PARSE_2CHILD break;
+            case 73:  expr->type = EXPR_OP; expr->idata = OP_BXOR; PARSE_2CHILD break;
+            case 50:  expr->type = EXPR_OP; expr->idata = OP_NOT; PARSE_1CHILD break;
+            case 49:  expr->type = EXPR_OP; expr->idata = OP_BNOT; PARSE_1CHILD break;
+            case 25:  expr->type = EXPR_QUERY; PARSE_1CHILD break;
             default:
                 printf("Error [at line %d]\n", __LINE__);
                 exit(1);
@@ -752,7 +641,7 @@ const char *parse_match_branch(const char *s, struct statement *stmt)
         s = skip_spaces(s);
         
         const char *e = skip_to(s, "{");
-        const char *grd = skip_to(s, ":");
+        const char *grd = skip_including(s, ":");
 
         if (grd < e)
         {
@@ -761,7 +650,7 @@ const char *parse_match_branch(const char *s, struct statement *stmt)
             
             char *guard = substring(grd, e);
             printf("Guard: %s\n", guard);
-            e = grd;
+            e = grd - 1;
         }
         
         char *name = substring(s, e);
@@ -774,7 +663,7 @@ const char *parse_match_branch(const char *s, struct statement *stmt)
     {
         /* read value */
         const char *e = skip_to(s, "{");
-        const char *grd = skip_to(s, ":");
+        const char *grd = skip_including(s, ":");
 
         if (grd < e)
         {
@@ -783,7 +672,7 @@ const char *parse_match_branch(const char *s, struct statement *stmt)
             
             char *guard = substring(grd, e);
             printf("Guard: %s\n", guard);
-            e = grd;
+            e = grd - 1;
         }
         
         stmt->match.cases_literal[id] = new_expr();
@@ -801,6 +690,100 @@ const char *parse_match_branch(const char *s, struct statement *stmt)
     s = parse_stmt_block(s);
     context.curr = restore;
     return s;
+}
+
+
+void parse_worker_call(const char *s, const char *e, struct statement *stmt)
+{
+    s = skip_spaces(s);
+
+    if (*s != '(')
+    {
+        log_error(s, "Error: worker call not started by '('\n"); return;
+    }
+    /* skip braces - find worker name */
+    const char *end_brace = s;
+    {
+        int bal = 1, str = 0; end_brace++;
+        while (str || *end_brace != ')' || bal != 1)
+        {
+            if (str)
+            {
+                     if (*end_brace == '\\') end_brace++;
+                else if (*end_brace == '"') str = 0;
+                end_brace++;
+            }
+            else
+            {
+                     if (*end_brace == '"') str = 1;
+                else if (*end_brace == ')') bal--;
+                else if (*end_brace == '(') bal++;
+            }
+            end_brace++;
+        }
+    }
+    const char *name_pos = skip_spaces(end_brace + 1);
+    const char *name_end = skip_identifer(name_pos);
+    char *name = substring(name_pos, name_end);
+
+    /* find worker by name */
+    printf("Call worker %s\n", name);
+    struct worker *w = get_worker(name);
+    if (w == NULL)
+    {
+        log_error(name_pos, "Error: worker with name <%s> isn't defined\n", name);
+        return;
+    }
+    free(name);
+    
+    /* find all input variables */
+    {
+        const char *pos = s + 1, *end = NULL;
+        int id = 0;
+        while (pos < end_brace)
+        {
+            end = skip_to(pos, ",");
+            if (end > end_brace) { end = end_brace; }
+            struct expression *expr = new_expr();
+            parse_expression(pos, end, expr);
+            stmt->worker.inputs[id] = expr;
+            pos = end + 1;
+            id++;
+        }
+        if (id != w->inputs_len)
+        {
+            log_error(end_brace, "Error: Waited for %d inputs for %s, but have %d inputs\n", w->inputs_len, w->name, id);
+        }
+    }
+
+    /* declare all output variables */
+    {
+        const char *pos = skip_spaces(name_end), *end = NULL, *last; 
+        int id = 0;
+        last = skip_to(pos, ")");
+        if (*pos != '(')
+        {
+            log_error(pos, "Expected ( after worker name [output list]\n");
+        }
+        pos++;
+        while (pos < last)
+        {
+            end = skip_to(pos, ",");
+            if (end > last) { end = last; }
+            char *name = substring(pos, end);
+            printf("Output named %s\n", name);
+            struct variable *var = new_variable(w->outputs[id]->type, name);
+            stmt->worker.outputs[id] = var;
+            pos = end + 1;
+            id++;
+        }
+        if (id != w->outputs_len)
+        {
+            log_error(end_brace, "Error: Waited for %d outputs for %s, but have %d outputs\n", w->outputs_len, w->name, id);
+        } 
+    }
+    
+    
 }
 
 
@@ -885,8 +868,12 @@ const char *parse_stmt(const char *s)
     }
     else if (starts_with(s, "~"))
     {
-        // TODO
-        return skip_to(s, ";") + 1;
+        s = skip_prefix(s, "~");
+        const char *e = skip_to(s, ";");
+        struct statement *stmt = new_statement();
+        stmt->type = STMT_WORKER;
+        parse_worker_call(s, e, stmt);
+        return e + 1;
     }
     else
     {

@@ -64,6 +64,7 @@
 
 (byte[]| s)main()
 {
+    decl i32| in;
     ~ (in)factor(out);
     while (1)
     {
@@ -73,9 +74,9 @@
         in <- y;
         decl i32 k;
         k <- ?out;
-        match z
+        match k
         {
-            default p { ~ ("%d", p)!printf(); }
+            default p { ~ ("%d", p)printf(); }
         }
     }
 }

@@ -72,6 +72,7 @@ enum expression_type
 {
     EXPR_LITERAL_INT,
     EXPR_LITERAL_STRING,
+    EXPR_ARRAY_INDEX,
     EXPR_VARIABLE,
     EXPR_QUERY,
     EXPR_PUSH,
@@ -85,6 +86,7 @@ enum op_type
     OP_SUB,
     OP_MUL,
     OP_DIV,
+    OP_MOD,
     
     OP_AND,
     OP_NOT,
@@ -121,7 +123,7 @@ struct expression
 struct statement_worker
 {
     struct worker *worker;
-    struct variable *inputs[32];
+    struct expression *inputs[32];
     struct variable *outputs[32];
 };
 
