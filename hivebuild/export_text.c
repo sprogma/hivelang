@@ -22,6 +22,10 @@ static void print_type(FILE *f, struct type *t)
             fprintf(f, "Array [size %lld] of type ", size_of_type(t));
             print_type(f, t->array.base);
             break;
+        case VAR_PROMISE:
+            fprintf(f, "Promise [size %lld] of type ", size_of_type(t));
+            print_type(f, t->promise.base);
+            break;
         case VAR_PIPE:
             fprintf(f, "Pipe [size %lld] of type ", size_of_type(t));
             print_type(f, t->pipe.base);
@@ -200,6 +204,8 @@ int export_program_text(struct program *program, const char *filename)
     {
         print_worker(f, program->workers[i]);
     }
+    int64_t size = ftell(f);
+    printf("TEXT export generated [to file %s]. wrote %lld bytes\n", filename, size);
     fclose(f);
     return 0;
 }

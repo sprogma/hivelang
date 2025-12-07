@@ -19,34 +19,36 @@ static void print_type(FILE *f, struct type *t)
         case VAR_CLASS:
             fprintf(f, ",");
             fprintf(f, "\"class:\"%s\",", t->class.name);
-            fprintf(f, "\"fields\":{");
-            for (int i = 0; i < t->class.record->record.fields_len; ++i)
+            fprintf(f, "\"fields\":[");
+            for (int64_t i = 0; i < t->class.record->record.fields_len; ++i)
             {
                 if (i != 0) { putc(',', f); }
-                fprintf(f, "\"%s\":%lld", t->class.record->record.fields_name[i], 
-                                          t->class.record->record.fields_type[i]->id);
+                fprintf(f, "%lld", t->class.record->record.fields_type[i]->id);
             }
-            fprintf(f, "}");
+            fprintf(f, "]");
             break;
         case VAR_RECORD:
             fprintf(f, ",");
             fprintf(f, "\"record\":%s,", t->record.name);
-            fprintf(f, "\"fields\":{");
-            for (int i = 0; i < t->record.fields_len; ++i)
+            fprintf(f, "\"fields\":[");
+            for (int64_t i = 0; i < t->record.fields_len; ++i)
             {
                 if (i != 0) { putc(',', f); }
-                fprintf(f, "\"%s\":%lld", t->record.fields_name[i], 
-                                          t->record.fields_type[i]->id);
+                fprintf(f, "%lld", t->record.fields_type[i]->id);
             }
-            fprintf(f, "}");
+            fprintf(f, "]");
             break;
         case VAR_ARRAY:
             fprintf(f, ",");
             fprintf(f, "\"base\":%lld", t->array.base->id);
             break;
+        case VAR_PROMISE:
+            fprintf(f, ",");
+            fprintf(f, "\"base\":%lld", t->promise.base->id);
+            break;
         case VAR_PIPE:
             fprintf(f, ",");
-            fprintf(f, "\"base\":%lld", t->array.base->id);
+            fprintf(f, "\"base\":%lld", t->pipe.base->id);
             break;
     }
     fprintf(f, "}");
@@ -167,7 +169,11 @@ static void print_code(FILE *f, struct block *b)
         switch (b->code[i]->type)
         {
             case STMT_BLOCK:
+                fprintf(f, "{");
+                fprintf(f, "\"type\":\"block\",");
+                fprintf(f, "\"block\":");
                 print_code(f, b->code[i]->block);
+                fprintf(f, "}");
                 break;
             case STMT_LOOP:
                 fprintf(f, "{");
@@ -300,6 +306,8 @@ int export_program_json(struct program *program, const char *filename)
         fprintf(f, "}");
     }
     fprintf(f, "}");
+    int64_t size = ftell(f);
+    printf("JSON export generated [to file %s]. wrote %lld bytes\n", filename, size);
     fclose(f);
     return 0;
 }

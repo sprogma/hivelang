@@ -17,6 +17,7 @@ enum type_type
     VAR_RECORD,
     VAR_ARRAY,
     VAR_PIPE,
+    VAR_PROMISE,
 };
 
 struct type_scalar
@@ -31,6 +32,11 @@ struct type_array
 };
 
 struct type_pipe
+{
+    struct type *base;
+};
+
+struct type_promise
 {
     struct type *base;
 };
@@ -63,6 +69,7 @@ struct type
         struct type_pipe pipe;
         struct type_class class;
         struct type_record record;
+        struct type_promise promise;
     };
 };
 

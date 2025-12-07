@@ -25,7 +25,7 @@ const char *parse_declaration(const char *s, const char *e);
 const char *parse_match_branch(const char *s, struct statement *stmt);
 const char *parse_stmt(const char *s);
 const char *parse_stmt_block(const char *s);
-const char *parse_function(const char *s);
+const char *parse_worker(const char *s);
 
 
 /* globals */
@@ -113,6 +113,9 @@ struct type *get_complex_type(enum type_type type, struct type *base)
             break;
         case VAR_PIPE:
             res->pipe.base = base;
+            break;
+        case VAR_PROMISE:
+            res->promise.base = base;
             break;
         default:
             printf("Error!\n");
@@ -259,7 +262,7 @@ const char *skip_prefix(const char *s, const char *prefix)
 
 const char *skip_identifer(const char *s)
 {
-    while (isalpha(*s) || isdigit(*s) || *s == '_' || *s == '$' || *s == '@' || *s == '?') { s++; }
+    while (isalpha(*s) || isdigit(*s) || *s == '_' || *s == '$' || *s == '@' || *s == '!') { s++; }
     return s;
 }
 
@@ -351,7 +354,7 @@ void validate_expression(const char *s, struct expression *expr)
         {
             validate_expression(s, expr->childs[0]);
             struct type *t = get_expr_type(context.result, expr->childs[0]);
-            if (t->type != VAR_PIPE && t->type != VAR_ARRAY)
+            if (t->type != VAR_PIPE && t->type != VAR_ARRAY && t->type != VAR_PROMISE)
             {
                 log_error(s, "Error: Query of something that isn't pipe or array\n");
             }
@@ -369,6 +372,10 @@ void validate_expression(const char *s, struct expression *expr)
                 {
                     log_error(s, "Error: Push to not lvalue\n");
                 }
+                return;
+            }
+            if (t1->type == VAR_PROMISE && t2 == t1->promise.base)
+            {
                 return;
             }
             if (t1->type == VAR_PIPE && t2 == t1->pipe.base)
@@ -453,6 +460,15 @@ const char *parse_type(const char *s, struct type **ptype)
             printf("Pipe\n");
 
             type = get_complex_type(VAR_PIPE, type);
+            *ptype = type;
+        }
+        else if (starts_with(s, "?"))
+        {
+            s++;
+            s = skip_spaces(s);
+            printf("Promise\n");
+
+            type = get_complex_type(VAR_PROMISE, type);
             *ptype = type;
         }
         else
@@ -1086,7 +1102,7 @@ const char *parse_stmt_block(const char *s)
 }
 
 
-const char *parse_function(const char *s)
+const char *parse_worker(const char *s)
 {   
     context.curr = NULL;
     context.curr = new_block();
@@ -1148,6 +1164,15 @@ const char *parse_function(const char *s)
 
     printf("Outputs parsed\n");
 
+    /* all outputs must be pipes or promises for now */
+    for (int i = 0; i < context.worker->outputs_len; ++i)
+    {
+        if (context.worker->outputs[i]->type->type != VAR_PIPE && context.worker->outputs[i]->type->type != VAR_PROMISE)
+        {
+            log_error(s, "Error: for now all return types must be PIPEs or PROMISEs.\n");
+        }
+    }
+
     /* parse body */
 
     s = parse_stmt_block(s);
@@ -1168,6 +1193,7 @@ struct program *parse(const char *s)
     filename = "a.test";
 
     context.result = calloc(1, sizeof(*context.result));
+    context.result->variable_id = 1;
 
     {
         /* default types */
@@ -1217,7 +1243,7 @@ struct program *parse(const char *s)
     /* 1. read all functions */
     while (1)
     {
-        s = parse_function(s);
+        s = parse_worker(s);
         s = skip_spaces(s);
         if (log_count >= 100)
         {

@@ -60,10 +60,10 @@
     }
 }
 
-(byte[] x)atoi@libc(i32 y) {}
+(byte[] x)atoi(i32? y) {}
 (i32 x)print() {}
 
-(byte[]| s)main(i32 res)
+(byte[]| s)main(i32? res)
 {
     decl i32| in;
     ~ (in)factor(out);
@@ -71,8 +71,8 @@
     {
         decl byte[] x;
         x <- ?s;
-        ~ (x)atoi@libc(y);
-        in <- y;
+        ~ (x)atoi(y);
+        in <- ?y;
         decl i32[] k;
         k <- ?out;
         decl i32 i;

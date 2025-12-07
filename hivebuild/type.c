@@ -22,6 +22,8 @@ size_t size_of_type(struct type *t)
             }
         case VAR_ARRAY:
             return 8;
+        case VAR_PROMISE:
+            return 8;
         case VAR_PIPE:
             return 8;
     }
@@ -57,6 +59,10 @@ struct type *get_expr_type(struct program *p, struct expression *e)
             {
                 return t->array.base;
             }
+            if (t->type == VAR_PROMISE)
+            {
+                return t->array.base;
+            }
             if (t->type == VAR_ARRAY)
             {
                 return get_base_type("i64");
@@ -65,7 +71,7 @@ struct type *get_expr_type(struct program *p, struct expression *e)
             return t;
         }
         case EXPR_PUSH:
-            return get_expr_type(p, e->childs[0]);
+            return get_expr_type(p, e->childs[1]);
         case EXPR_OP:
         {
             /* if have 2 childs, both types must be same, so return left one */
