@@ -24,3 +24,9 @@
 
 * Count accesses to objects, and transfer them, if remote accesses count from any domain is greater than local accesses
 * Query other hives, and distribute payload
+
+## Communication
+
+* I think hives will communicate using many different ways, becouse I can't imagine way to use one api:
+    Network hives must use json and can communicate only with their server, so we can't connect them to C hive.
+    So, There will be many realization, and some of them will be compactable, some - not.

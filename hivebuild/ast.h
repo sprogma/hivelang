@@ -180,6 +180,9 @@ struct statement
         struct expression *expr;
         struct statement_worker worker;
     };
+
+    /* metadata */
+    double execution_cost;
 };
 
 
@@ -201,12 +204,17 @@ struct worker
 {
     char *name;
     int64_t id;
+
     
     struct variable* inputs[32];
     int64_t         inputs_len;
     struct variable* outputs[32];
     int64_t         outputs_len;
     struct block *body;
+    
+    /* metadata */
+    double execution_cost;
+    int64_t multiplication;
 };
 
 
@@ -235,5 +243,6 @@ struct type *get_expr_type(struct program *p, struct expression *e);
 int is_lvalue(struct program *p, struct expression *e);
 struct type *get_base_type(char *name);
 struct type *get_complex_type(enum type_type type, struct type *base);
+void optimize_program(struct program *program);
 
 #endif

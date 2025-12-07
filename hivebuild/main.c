@@ -18,7 +18,9 @@ int main()
         return 1;
     }
 
-    export_program_text(res, "a.txt");
+    optimize_program(res);
+
+    export_program_text(res);
     export_program_json(res, "a.json");
     export_program_bytes(res, "a.bin");
     
