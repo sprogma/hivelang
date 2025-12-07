@@ -262,20 +262,20 @@ static void print_code(FILE *f, struct block *b)
 static void print_worker(FILE *f, struct worker *w)
 {
     fprintf(f, "\"%lld\":{", w->id);
-    fprintf(f, "\"inputs\":{");
+    fprintf(f, "\"inputs\":[");
     for (int i = 0; i < w->inputs_len; ++i)
     {
         if (i != 0) { putc(',', f); }
-        print_variable(f, w->inputs[i]);
+        fprintf(f, "%lld", w->inputs[i]->id);
     }
-    fprintf(f, "},");
-    fprintf(f, "\"outputs\":{");
+    fprintf(f, "],");
+    fprintf(f, "\"outputs\":[");
     for (int i = 0; i < w->outputs_len; ++i)
     {
         if (i != 0) { putc(',', f); }
-        print_variable(f, w->outputs[i]);
+        fprintf(f, "%lld", w->outputs[i]->id);
     }
-    fprintf(f, "},");
+    fprintf(f, "],");
     fprintf(f, "\"code\":");
     print_code(f, w->body);
     fprintf(f, "}");

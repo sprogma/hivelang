@@ -30,3 +30,14 @@
 * I think hives will communicate using many different ways, becouse I can't imagine way to use one api:
     Network hives must use json and can communicate only with their server, so we can't connect them to C hive.
     So, There will be many realization, and some of them will be compactable, some - not.
+
+## Objects
+
+At object creation hive must create it's ID and give it to program; Also, this ID must be unique on all hives.
+~~To solve this problem, it can use random~~?
+Or maybe use global lock?
+Hive ID must be near 3 bytes?
+
+! Then sending objects between hives one can transfer more than 8bytes, and encode hive ID in bigger size!
+
+! Ok, Then 8bytes is size of pointer inside hive, and while transfering it's size will be 16 bytes?

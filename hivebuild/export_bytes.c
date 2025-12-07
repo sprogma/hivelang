@@ -38,7 +38,8 @@ static void write64packed(void *ptr, FILE *f)
 static void print_type(FILE *f, struct type *t)
 {
     WRITE_64(&t->id);
-    WRITE_64(&t->type);
+    int64_t data = t->type;
+    WRITE_64(&data);
     switch (t->type)
     {
         case VAR_SCALAR:
@@ -159,7 +160,8 @@ static void print_code(FILE *f, struct block *b)
     WRITE_64(&b->code_len);
     for (int i = 0; i < b->code_len; ++i)
     {
-        WRITE_64(&b->code[i]->type);
+        int64_t data = b->code[i]->type;
+        WRITE_64(&data);
         switch (b->code[i]->type)
         {
             case STMT_BLOCK:
@@ -226,12 +228,12 @@ static void print_worker(FILE *f, struct worker *w)
     WRITE_64(&w->inputs_len);
     for (int i = 0; i < w->inputs_len; ++i)
     {
-        print_variable(f, w->inputs[i]);
+        WRITE_64(&w->inputs[i]->id);
     }
     WRITE_64(&w->outputs_len);
     for (int i = 0; i < w->outputs_len; ++i)
     {
-        print_variable(f, w->outputs[i]);
+        WRITE_64(&w->outputs[i]->id);
     }
     print_code(f, w->body);
 }

@@ -125,7 +125,6 @@ struct expression
     enum expression_type type;
     struct expression *childs[2];
     int64_t            childs_len;
-    /* for literals */
     union
     {
         void *pdata;
