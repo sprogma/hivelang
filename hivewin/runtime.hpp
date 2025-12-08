@@ -10,11 +10,11 @@
 extern "C"
 {
 
-void RunWorker(int64_t id, union value *input);
+void RunWorker(worker_id id, uint8_t *data);
 
 void TransferObject(object_id object, void *data);
 
-union value GetObject(object_id object, int64_t parameter);
+union value ExpandObject(object_id object, int64_t parameter);
 
 struct query_results
 {

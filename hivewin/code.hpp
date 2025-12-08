@@ -30,6 +30,8 @@ struct type
         struct type_pipe {type_id base;} pipe;
         struct type_promise {type_id base;} promise;
     };
+    
+    int64_t cached_size;
 };
 
 struct variable
@@ -144,7 +146,7 @@ struct worker
     int64_t multiplication;
 
     /* compiler cache */
-    void (*compiled)();
+    void (*compiled)(uint8_t *args);
 };
 
 struct program

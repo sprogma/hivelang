@@ -11,7 +11,7 @@ typedef int64_t object_id;
 union value
 {
     object_id object;
-    void *raw_data;
+    void *data;
 };
 
 struct object_origin
@@ -20,11 +20,12 @@ struct object_origin
     /* if equal to localhost - then ID without first bit is pointer on object! */
     uint32_t server_ip;
     uint32_t server_port;
+    void *data;
 };
 
 struct execution_worker
 {
-    worker_id id;    
+    worker_id id;
     /* statistics */
     double time_executed;
     double time_executed_prev;
@@ -33,9 +34,11 @@ struct execution_worker
 
 struct hive
 {
-    std::unordered_map<int64_t, struct object_origin> objects;
-    std::unordered_map<int64_t, struct execution_worker *>workers;
+    std::unordered_map<object_id, struct object_origin> objects;
+    std::unordered_map<worker_id, struct execution_worker *>workers;
     struct program *program;
+
+    object_id next_obj_id;
 };
 
 

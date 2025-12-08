@@ -1,4 +1,5 @@
 #include "stdio.h"
+#include "windows.h"
 
 #include "code.hpp"
 #include "dynamic.hpp"
@@ -14,25 +15,67 @@ extern "C"
 
 struct pipe
 {
-    
+    union value *buffer;
+    int64_t begin;
+    int64_t end;
 };
 
-union value *create_pipe()
-{
-    return calloc(1, sizeof(struct pipe));
-}
+
 
 struct hive *h;
 
 
-void RunWorker(int64_t id, union value *input)
+
+
+object_id register_object(void *data)
 {
+    object_id id = h->next_obj_id++;
+    h->objects[id].server_ip = 0;
+    h->objects[id].server_port = 0;
+    h->objects[id].data = data;
+    return id;
+}
+
+
+union value create_pipe()
+{
+    return (union value){.object = register_object(calloc(1, sizeof(struct pipe)))};
+}
+
+
+
+void RunWorker(worker_id id, uint8_t *data)
+{
+    struct execution_worker *ew = h->workers[id];
+    struct worker *w = h->program->workers[id];
+
+    LARGE_INTEGER frequency;
+    LARGE_INTEGER start;
+    LARGE_INTEGER end;
     
+    printf("Starting execution of %lld\n", id);
+
+    if (w->compiled == NULL)
+    {
+        printf("Error: run of not compiled worker\n");
+        exit(1);
+    }
+
+    QueryPerformanceFrequency(&frequency);
+    QueryPerformanceCounter(&start);
+
+    w->compiled(data);
+
+    QueryPerformanceCounter(&end);
+
+    double time = (double) (end.QuadPart - start.QuadPart) / frequency.QuadPart;
+    ew->time_executed += time;
+    printf("Worker %lld executed for %f s.\n", id, time);
 }
 
 void TransferObject(object_id object, void *data);
 
-union value GetObject(object_id object, int64_t parameter);
+union value ExpandObject(object_id object, int64_t parameter);
 
 struct query_results QueryHive();
 
@@ -49,17 +92,20 @@ int main()
     struct program *prg = program_from_bytes(code);
     h = create_hive(prg);
     
-    int last;
 
+    worker_id last;
     for (auto i : prg->workers)
     {
         compile_worker(h, i.first);
         last = i.first;
     }
 
-    union value *input = create_pipe();
+    union value input = create_pipe();
 
-    RunWorker(last, input);
+    uint8_t *data = (uint8_t *)malloc(8);
+    memcpy(data, &input, 8);
+
+    RunWorker(last, data);
 
     printf("Program %p\n", prg);
     
