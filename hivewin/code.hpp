@@ -147,6 +147,7 @@ struct worker
 
     /* compiler cache */
     void (*compiled)(uint8_t *args);
+    int64_t compiled_len;
 };
 
 struct program
