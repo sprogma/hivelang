@@ -253,10 +253,10 @@ static void read_worker(struct program *p, uint8_t **bytes, struct worker *w)
 struct program *program_from_bytes(uint8_t *encoded)
 {
     uint8_t **bytes = &encoded;
-    struct program *res = (struct program *)malloc(sizeof(*res));
+    struct program *res = new struct program; /*(struct program *)malloc(sizeof(*res));
 
     new(&res->types)std::unordered_map<int64_t, struct type *>;
-    new(&res->workers)std::unordered_map<int64_t, struct worker *>;
+    new(&res->workers)std::unordered_map<int64_t, struct worker *>;*/
     
     int64_t types_len = READ_64();
     for (int i = 0; i < types_len; ++i)
@@ -273,5 +273,6 @@ struct program *program_from_bytes(uint8_t *encoded)
         res->workers[wk->id] = wk;
     }
 
+    printf("Program read.\n");
     return res;
 }
