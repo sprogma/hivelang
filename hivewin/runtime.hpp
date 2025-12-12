@@ -14,7 +14,7 @@ void RunWorker(worker_id id, uint8_t *data);
 
 void TransferObject(object_id object, void *data);
 
-union value ExpandObject(object_id object, int64_t parameter);
+void ExpandObject(object_id object, int64_t parameter, void *dest);
 
 struct query_results
 {
@@ -28,6 +28,11 @@ struct query_results QueryHive();
 
 // TODO: realizate connection
 // void Connect(int32_t ip, int32_t port);
+
+
+
+/* internal functions */
+void SendObject(object_id object, int64_t parameter, void *data);
 }
 
 #endif

@@ -45,7 +45,7 @@
         i <- ?x;
         ~ (2, i)range(k);
         ~ (k)primes(u);
-        while i != 1
+        while i <> 1
         {
             decl i32 d;
             d <- ?u;

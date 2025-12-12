@@ -1,0 +1,464 @@
+	.file	"a.c"
+	.text
+	.comm	stack, 262144, 5
+	.globl	stack_ptr
+	.bss
+	.align 4
+stack_ptr:
+	.space 4
+	.text
+	.globl	memset
+	.def	memset;	.scl	2;	.type	32;	.endef
+	.seh_proc	memset
+memset:
+	pushq	%rbp
+	.seh_pushreg	%rbp
+	movq	%rsp, %rbp
+	.seh_setframe	%rbp, 0
+	subq	$32, %rsp
+	.seh_stackalloc	32
+	.seh_endprologue
+	movq	%rcx, 16(%rbp)
+	movl	%edx, 24(%rbp)
+	movq	%r8, 32(%rbp)
+	movq	32(%rbp), %rcx
+	movl	24(%rbp), %edx
+	movabsq	$140701185339904, %rax
+	movq	%rcx, %r8
+	movq	16(%rbp), %rcx
+	call	*%rax
+	nop
+	addq	$32, %rsp
+	popq	%rbp
+	ret
+	.seh_endproc
+	.globl	memcpy
+	.def	memcpy;	.scl	2;	.type	32;	.endef
+	.seh_proc	memcpy
+memcpy:
+	pushq	%rbp
+	.seh_pushreg	%rbp
+	movq	%rsp, %rbp
+	.seh_setframe	%rbp, 0
+	subq	$32, %rsp
+	.seh_stackalloc	32
+	.seh_endprologue
+	movq	%rcx, 16(%rbp)
+	movq	%rdx, 24(%rbp)
+	movq	%r8, 32(%rbp)
+	movq	32(%rbp), %rcx
+	movq	24(%rbp), %rdx
+	movabsq	$140701185340864, %rax
+	movq	%rcx, %r8
+	movq	16(%rbp), %rcx
+	call	*%rax
+	nop
+	addq	$32, %rsp
+	popq	%rbp
+	ret
+	.seh_endproc
+	.globl	pop
+	.def	pop;	.scl	2;	.type	32;	.endef
+	.seh_proc	pop
+pop:
+	pushq	%rbp
+	.seh_pushreg	%rbp
+	movq	%rsp, %rbp
+	.seh_setframe	%rbp, 0
+	subq	$32, %rsp
+	.seh_stackalloc	32
+	.seh_endprologue
+	movq	%rcx, 16(%rbp)
+	movl	stack_ptr(%rip), %eax
+	subl	$1, %eax
+	movl	%eax, stack_ptr(%rip)
+	movl	stack_ptr(%rip), %eax
+	cltq
+	salq	$10, %rax
+	movq	%rax, %rdx
+	leaq	stack(%rip), %rax
+	addq	%rdx, %rax
+	movl	$1024, %r8d
+	movq	%rax, %rdx
+	movq	16(%rbp), %rcx
+	call	memcpy
+	nop
+	addq	$32, %rsp
+	popq	%rbp
+	ret
+	.seh_endproc
+	.globl	push
+	.def	push;	.scl	2;	.type	32;	.endef
+	.seh_proc	push
+push:
+	pushq	%rbp
+	.seh_pushreg	%rbp
+	movq	%rsp, %rbp
+	.seh_setframe	%rbp, 0
+	subq	$32, %rsp
+	.seh_stackalloc	32
+	.seh_endprologue
+	movq	%rcx, 16(%rbp)
+	movl	stack_ptr(%rip), %eax
+	leal	1(%rax), %edx
+	movl	%edx, stack_ptr(%rip)
+	cltq
+	salq	$10, %rax
+	movq	%rax, %rdx
+	leaq	stack(%rip), %rax
+	addq	%rdx, %rax
+	movl	$1024, %r8d
+	movq	16(%rbp), %rdx
+	movq	%rax, %rcx
+	call	memcpy
+	nop
+	addq	$32, %rsp
+	popq	%rbp
+	ret
+	.seh_endproc
+	.globl	QueryObject
+	.def	QueryObject;	.scl	2;	.type	32;	.endef
+	.seh_proc	QueryObject
+QueryObject:
+	pushq	%rbp
+	.seh_pushreg	%rbp
+	movq	%rsp, %rbp
+	.seh_setframe	%rbp, 0
+	subq	$32, %rsp
+	.seh_stackalloc	32
+	.seh_endprologue
+	movq	%rcx, 16(%rbp)
+	movq	%rdx, 24(%rbp)
+	movq	%r8, 32(%rbp)
+	movq	32(%rbp), %rcx
+	movq	24(%rbp), %rdx
+	movabsq	$140701184881824, %rax
+	movq	%rcx, %r8
+	movq	16(%rbp), %rcx
+	call	*%rax
+	nop
+	addq	$32, %rsp
+	popq	%rbp
+	ret
+	.seh_endproc
+	.globl	SendObject
+	.def	SendObject;	.scl	2;	.type	32;	.endef
+	.seh_proc	SendObject
+SendObject:
+	pushq	%rbp
+	.seh_pushreg	%rbp
+	movq	%rsp, %rbp
+	.seh_setframe	%rbp, 0
+	subq	$32, %rsp
+	.seh_stackalloc	32
+	.seh_endprologue
+	movq	%rcx, 16(%rbp)
+	movq	%rdx, 24(%rbp)
+	movq	%r8, 32(%rbp)
+	movq	32(%rbp), %rcx
+	movq	24(%rbp), %rdx
+	movabsq	$140701184881920, %rax
+	movq	%rcx, %r8
+	movq	16(%rbp), %rcx
+	call	*%rax
+	nop
+	addq	$32, %rsp
+	popq	%rbp
+	ret
+	.seh_endproc
+	.globl	worker
+	.def	worker;	.scl	2;	.type	32;	.endef
+	.seh_proc	worker
+worker:
+	pushq	%rbp
+	.seh_pushreg	%rbp
+	movl	$4128, %eax
+	call	___chkstk_ms
+	subq	%rax, %rsp
+	.seh_stackalloc	4128
+	leaq	128(%rsp), %rbp
+	.seh_setframe	%rbp, 128
+	.seh_endprologue
+	movq	%rcx, 4016(%rbp)
+	leaq	2976(%rbp), %rax
+	movl	$1024, %edx
+	movq	%rdx, %r8
+	movl	$0, %edx
+	movq	%rax, %rcx
+	call	memset
+	leaq	1952(%rbp), %rax
+	movl	$1024, %edx
+	movq	%rdx, %r8
+	movl	$0, %edx
+	movq	%rax, %rcx
+	call	memset
+	leaq	928(%rbp), %rax
+	movl	$1024, %edx
+	movq	%rdx, %r8
+	movl	$0, %edx
+	movq	%rax, %rcx
+	call	memset
+	leaq	-96(%rbp), %rax
+	movl	$1024, %edx
+	movq	%rdx, %r8
+	movl	$0, %edx
+	movq	%rax, %rcx
+	call	memset
+	leaq	2976(%rbp), %rax
+	movl	$8, %r8d
+	movq	4016(%rbp), %rdx
+	movq	%rax, %rcx
+	call	memcpy
+.L16:
+	movq	$1, 1952(%rbp)
+	movq	1952(%rbp), %rax
+	testq	%rax, %rax
+	je	.L20
+	movq	$0, 1952(%rbp)
+	leaq	2976(%rbp), %rax
+	addq	$16, %rax
+	leaq	1952(%rbp), %rdx
+	movl	$4, %r8d
+	movq	%rax, %rcx
+	call	memcpy
+	movq	$50, 1952(%rbp)
+	movq	1952(%rbp), %rax
+	salq	$2, %rax
+	movq	%rax, %rcx
+	call	malloc
+	cltq
+	movq	%rax, 1952(%rbp)
+	leaq	2976(%rbp), %rax
+	addq	$20, %rax
+	leaq	1952(%rbp), %rdx
+	movl	$8, %r8d
+	movq	%rax, %rcx
+	call	memcpy
+	leaq	2976(%rbp), %rdx
+	leaq	1952(%rbp), %rax
+	movl	$8, %r8d
+	movq	%rax, %rcx
+	call	memcpy
+	movq	1952(%rbp), %rax
+	leaq	1952(%rbp), %rdx
+	movq	%rdx, %r8
+	movl	$0, %edx
+	movq	%rax, %rcx
+	call	QueryObject
+	leaq	2976(%rbp), %rax
+	addq	$28, %rax
+	leaq	1952(%rbp), %rdx
+	movl	$4, %r8d
+	movq	%rax, %rcx
+	call	memcpy
+.L15:
+	leaq	2976(%rbp), %rax
+	addq	$28, %rax
+	leaq	1952(%rbp), %rcx
+	movl	$4, %r8d
+	movq	%rax, %rdx
+	call	memcpy
+	leaq	1952(%rbp), %rax
+	movq	%rax, %rcx
+	call	push
+	movq	$1, 1952(%rbp)
+	leaq	928(%rbp), %rax
+	movq	%rax, %rcx
+	call	pop
+	movq	928(%rbp), %rdx
+	movq	1952(%rbp), %rax
+	cmpq	%rax, %rdx
+	setne	%al
+	movzbl	%al, %eax
+	movq	%rax, 1952(%rbp)
+	movq	1952(%rbp), %rax
+	testq	%rax, %rax
+	je	.L21
+	leaq	2976(%rbp), %rax
+	addq	$40, %rax
+	leaq	1952(%rbp), %rcx
+	movl	$8, %r8d
+	movq	%rax, %rdx
+	call	memcpy
+	movq	1952(%rbp), %rax
+	leaq	1952(%rbp), %rdx
+	movq	%rdx, %r8
+	movl	$0, %edx
+	movq	%rax, %rcx
+	call	QueryObject
+	leaq	2976(%rbp), %rax
+	addq	$48, %rax
+	leaq	1952(%rbp), %rdx
+	movl	$4, %r8d
+	movq	%rax, %rcx
+	call	memcpy
+.L14:
+	leaq	2976(%rbp), %rax
+	addq	$28, %rax
+	leaq	1952(%rbp), %rcx
+	movl	$4, %r8d
+	movq	%rax, %rdx
+	call	memcpy
+	leaq	1952(%rbp), %rax
+	movq	%rax, %rcx
+	call	push
+	leaq	2976(%rbp), %rax
+	addq	$48, %rax
+	leaq	1952(%rbp), %rcx
+	movl	$4, %r8d
+	movq	%rax, %rdx
+	call	memcpy
+	leaq	928(%rbp), %rax
+	movq	%rax, %rcx
+	call	pop
+	movq	928(%rbp), %rax
+	movq	1952(%rbp), %rcx
+	cqto
+	idivq	%rcx
+	movq	%rdx, %rax
+	movq	%rax, 1952(%rbp)
+	leaq	1952(%rbp), %rax
+	movq	%rax, %rcx
+	call	push
+	movq	$0, 1952(%rbp)
+	leaq	928(%rbp), %rax
+	movq	%rax, %rcx
+	call	pop
+	movq	928(%rbp), %rdx
+	movq	1952(%rbp), %rax
+	cmpq	%rax, %rdx
+	sete	%al
+	movzbl	%al, %eax
+	movq	%rax, 1952(%rbp)
+	movq	1952(%rbp), %rax
+	testq	%rax, %rax
+	je	.L22
+	leaq	2976(%rbp), %rax
+	addq	$28, %rax
+	leaq	1952(%rbp), %rcx
+	movl	$4, %r8d
+	movq	%rax, %rdx
+	call	memcpy
+	leaq	1952(%rbp), %rax
+	movq	%rax, %rcx
+	call	push
+	leaq	2976(%rbp), %rax
+	addq	$48, %rax
+	leaq	1952(%rbp), %rcx
+	movl	$4, %r8d
+	movq	%rax, %rdx
+	call	memcpy
+	leaq	928(%rbp), %rax
+	movq	%rax, %rcx
+	call	pop
+	movq	928(%rbp), %rax
+	movq	1952(%rbp), %rcx
+	cqto
+	idivq	%rcx
+	movq	%rax, 1952(%rbp)
+	leaq	2976(%rbp), %rax
+	addq	$28, %rax
+	leaq	1952(%rbp), %rdx
+	movl	$4, %r8d
+	movq	%rax, %rcx
+	call	memcpy
+	leaq	2976(%rbp), %rax
+	addq	$48, %rax
+	leaq	1952(%rbp), %rcx
+	movl	$4, %r8d
+	movq	%rax, %rdx
+	call	memcpy
+	leaq	1952(%rbp), %rax
+	movq	%rax, %rcx
+	call	push
+	leaq	2976(%rbp), %rax
+	addq	$20, %rax
+	leaq	1952(%rbp), %rcx
+	movl	$8, %r8d
+	movq	%rax, %rdx
+	call	memcpy
+	leaq	1952(%rbp), %rax
+	movq	%rax, %rcx
+	call	push
+	leaq	2976(%rbp), %rax
+	addq	$16, %rax
+	leaq	1952(%rbp), %rcx
+	movl	$4, %r8d
+	movq	%rax, %rdx
+	call	memcpy
+	leaq	928(%rbp), %rax
+	movq	%rax, %rcx
+	call	pop
+	leaq	-96(%rbp), %rax
+	movq	%rax, %rcx
+	call	pop
+	movq	1952(%rbp), %rdx
+	movq	928(%rbp), %rax
+	leaq	-96(%rbp), %rcx
+	movq	%rcx, %r8
+	movq	%rax, %rcx
+	call	SendObject
+	leaq	2976(%rbp), %rax
+	addq	$16, %rax
+	leaq	1952(%rbp), %rcx
+	movl	$4, %r8d
+	movq	%rax, %rdx
+	call	memcpy
+	leaq	1952(%rbp), %rax
+	movq	%rax, %rcx
+	call	push
+	movq	$1, 1952(%rbp)
+	leaq	928(%rbp), %rax
+	movq	%rax, %rcx
+	call	pop
+	movq	928(%rbp), %rdx
+	movq	1952(%rbp), %rax
+	addq	%rdx, %rax
+	movq	%rax, 1952(%rbp)
+	leaq	2976(%rbp), %rax
+	addq	$16, %rax
+	leaq	1952(%rbp), %rdx
+	movl	$4, %r8d
+	movq	%rax, %rcx
+	call	memcpy
+	jmp	.L14
+.L22:
+	nop
+	jmp	.L15
+.L21:
+	nop
+	leaq	2976(%rbp), %rax
+	addq	$8, %rax
+	leaq	1952(%rbp), %rcx
+	movl	$8, %r8d
+	movq	%rax, %rdx
+	call	memcpy
+	leaq	1952(%rbp), %rax
+	movq	%rax, %rcx
+	call	push
+	leaq	2976(%rbp), %rax
+	addq	$20, %rax
+	leaq	1952(%rbp), %rcx
+	movl	$8, %r8d
+	movq	%rax, %rdx
+	call	memcpy
+	leaq	928(%rbp), %rax
+	movq	%rax, %rcx
+	call	pop
+	movq	928(%rbp), %rax
+	leaq	1952(%rbp), %rdx
+	movq	%rdx, %r8
+	movl	$0, %edx
+	movq	%rax, %rcx
+	call	SendObject
+	jmp	.L16
+.L20:
+	nop
+	nop
+	addq	$4128, %rsp
+	popq	%rbp
+	ret
+	.seh_endproc
+	.ident	"GCC: (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0"
+	.def	memset;	.scl	2;	.type	32;	.endef
+	.def	malloc;	.scl	2;	.type	32;	.endef

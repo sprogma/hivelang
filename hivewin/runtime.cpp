@@ -73,11 +73,33 @@ void RunWorker(worker_id id, uint8_t *data)
     printf("Worker %lld executed for %f s.\n", id, time);
 }
 
-void TransferObject(object_id object, void *data);
+void TransferObject(object_id object, void *data)
+{
+    (void)object;
+    (void)data;
+}
 
-union value ExpandObject(object_id object, int64_t parameter);
+void ExpandObject(object_id object, int64_t parameter, void *dest)
+{
+    printf("Expand obj\n");
+    (void)object;
+    (void)parameter;
+    (void)dest;
+}
 
-struct query_results QueryHive();
+struct query_results QueryHive()
+{
+    return {};
+}
+
+
+void SendObject(object_id object, int64_t parameter, void *data)
+{
+    printf("Send obj\n");
+    (void)object;
+    (void)parameter;
+    (void)data;
+}
 
 }
 
