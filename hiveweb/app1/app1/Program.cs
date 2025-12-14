@@ -10,6 +10,11 @@ namespace app1
     {
         public static void Main(string[] args)
         {
+            /* prepare code v1 */
+            string programJson = File.ReadAllText("../../a.json");
+            CodeConverter cvt = new();
+            var code = cvt.BuildCode(programJson);
+
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
@@ -23,7 +28,11 @@ namespace app1
             builder.Services.AddSignalR();
 
             /* enable DI */
-            builder.Services.AddSingleton<ServerHive>();
+            builder.Services.AddSingleton<ServerHive>(sp =>
+            {
+                var hub = sp.GetRequiredService<IHubContext<HiveHub>>();
+                return new ServerHive(hub, code);
+            });
 
             /* run service */
             builder.Services.AddHostedService(sp => sp.GetRequiredService<ServerHive>());
@@ -38,12 +47,6 @@ namespace app1
 
             /* run hub */
             app.MapHub<HiveHub>("/hivehub");
-
-            app.MapGet("/data/program", () =>
-            {
-                string programJson = File.ReadAllText("../../a.json");
-                return programJson;
-            });
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
