@@ -1,0 +1,176 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "app1/1.0.0": {
+        "dependencies": {
+          "Microsoft.AspNetCore.Components.WebAssembly.Server": "10.0.1",
+          "Microsoft.AspNetCore.SignalR.Client": "10.0.1",
+          "app1.Client": "1.0.0",
+          "app1.Shared": "1.0.0"
+        },
+        "runtime": {
+          "app1.dll": {}
+        }
+      },
+      "Microsoft.AspNetCore.Components.WebAssembly/10.0.1": {
+        "dependencies": {
+          "Microsoft.JSInterop.WebAssembly": "10.0.1"
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.AspNetCore.Components.WebAssembly.dll": {
+            "assemblyVersion": "10.0.1.0",
+            "fileVersion": "10.0.125.57005"
+          }
+        }
+      },
+      "Microsoft.AspNetCore.Components.WebAssembly.Server/10.0.1": {
+        "dependencies": {
+          "Microsoft.AspNetCore.Components.WebAssembly": "10.0.1"
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.AspNetCore.Components.WebAssembly.Server.dll": {
+            "assemblyVersion": "10.0.1.0",
+            "fileVersion": "10.0.125.57005"
+          }
+        }
+      },
+      "Microsoft.AspNetCore.Http.Connections.Client/10.0.1": {
+        "runtime": {
+          "lib/net10.0/Microsoft.AspNetCore.Http.Connections.Client.dll": {
+            "assemblyVersion": "10.0.1.0",
+            "fileVersion": "10.0.125.57005"
+          }
+        }
+      },
+      "Microsoft.AspNetCore.SignalR.Client/10.0.1": {
+        "dependencies": {
+          "Microsoft.AspNetCore.Http.Connections.Client": "10.0.1",
+          "Microsoft.AspNetCore.SignalR.Client.Core": "10.0.1"
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.AspNetCore.SignalR.Client.dll": {
+            "assemblyVersion": "10.0.1.0",
+            "fileVersion": "10.0.125.57005"
+          }
+        }
+      },
+      "Microsoft.AspNetCore.SignalR.Client.Core/10.0.1": {
+        "runtime": {
+          "lib/net10.0/Microsoft.AspNetCore.SignalR.Client.Core.dll": {
+            "assemblyVersion": "10.0.1.0",
+            "fileVersion": "10.0.125.57005"
+          }
+        }
+      },
+      "Microsoft.DotNet.HotReload.WebAssembly.Browser/10.0.101": {
+        "runtime": {
+          "lib/net10.0/Microsoft.DotNet.HotReload.WebAssembly.Browser.dll": {
+            "assemblyVersion": "10.0.101.0",
+            "fileVersion": "10.1.125.57005"
+          }
+        }
+      },
+      "Microsoft.JSInterop.WebAssembly/10.0.1": {
+        "runtime": {
+          "lib/net10.0/Microsoft.JSInterop.WebAssembly.dll": {
+            "assemblyVersion": "10.0.1.0",
+            "fileVersion": "10.0.125.57005"
+          }
+        }
+      },
+      "app1.Client/1.0.0": {
+        "dependencies": {
+          "Microsoft.AspNetCore.Components.WebAssembly": "10.0.1",
+          "Microsoft.AspNetCore.SignalR.Client": "10.0.1",
+          "Microsoft.DotNet.HotReload.WebAssembly.Browser": "10.0.101",
+          "app1.Shared": "1.0.0"
+        },
+        "runtime": {
+          "app1.Client.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "app1.Shared/1.0.0": {
+        "runtime": {
+          "app1.Shared.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "app1/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Microsoft.AspNetCore.Components.WebAssembly/10.0.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-qh5mkVhHCv/fxPl8XCIwx+ea9uLeTbbVs2rzgvWkWX0EgYLITEEH3AbX6OuvDW8UQVETjio2UZOh6JDAO2A4Lw==",
+      "path": "microsoft.aspnetcore.components.webassembly/10.0.1",
+      "hashPath": "microsoft.aspnetcore.components.webassembly.10.0.1.nupkg.sha512"
+    },
+    "Microsoft.AspNetCore.Components.WebAssembly.Server/10.0.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-fl9r0e2VGWcMgwBlGGVUFv84o8k1X6pxh9X3Ph6f5/hU8feqFpeqC9K9OrBXd7JhMD49GoLOl5jZW3pdp+9Fog==",
+      "path": "microsoft.aspnetcore.components.webassembly.server/10.0.1",
+      "hashPath": "microsoft.aspnetcore.components.webassembly.server.10.0.1.nupkg.sha512"
+    },
+    "Microsoft.AspNetCore.Http.Connections.Client/10.0.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-+6lrifIZCL1heJtLugtkqEa191BIfUkhyAnBORbHg1eg4Vl+ijsxAzyOZxQTZbVMSJHKQCQFTEKf6H+YpSDWjA==",
+      "path": "microsoft.aspnetcore.http.connections.client/10.0.1",
+      "hashPath": "microsoft.aspnetcore.http.connections.client.10.0.1.nupkg.sha512"
+    },
+    "Microsoft.AspNetCore.SignalR.Client/10.0.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-mGlS8W2siQaJVVId2VGQ0I+7Lj49oqFxsb/bIil7GBNeazB6fBP8Ljf5tZUNzUN9WdQU5aI85WXCW9+Fsx2dZQ==",
+      "path": "microsoft.aspnetcore.signalr.client/10.0.1",
+      "hashPath": "microsoft.aspnetcore.signalr.client.10.0.1.nupkg.sha512"
+    },
+    "Microsoft.AspNetCore.SignalR.Client.Core/10.0.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-lkPaGkCtVibYBzUzO8gTGsX39L5XeZl8KArueePWMYqs6c2G58ch4fmKL0qMRqsFQ84uqd+5uOJ96dClusC+IQ==",
+      "path": "microsoft.aspnetcore.signalr.client.core/10.0.1",
+      "hashPath": "microsoft.aspnetcore.signalr.client.core.10.0.1.nupkg.sha512"
+    },
+    "Microsoft.DotNet.HotReload.WebAssembly.Browser/10.0.101": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-30d2d7ti8GiDYf9zg4+w5cvH3jm9HAQMyXzZgCVpEjmh3WLErJazuu2tyoIO75uNYLWPD/NNTTRD9SoPpDiACw==",
+      "path": "microsoft.dotnet.hotreload.webassembly.browser/10.0.101",
+      "hashPath": "microsoft.dotnet.hotreload.webassembly.browser.10.0.101.nupkg.sha512"
+    },
+    "Microsoft.JSInterop.WebAssembly/10.0.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-oIkAEHUSFduhX7scm0+RXODv7FtA/D0KaGW0dPmO1W6LL//VLHjS+pzhpgsS6fBQ+RZfOEFaTLkZewqi6xt8rw==",
+      "path": "microsoft.jsinterop.webassembly/10.0.1",
+      "hashPath": "microsoft.jsinterop.webassembly.10.0.1.nupkg.sha512"
+    },
+    "app1.Client/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "app1.Shared/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

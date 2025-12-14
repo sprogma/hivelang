@@ -2,7 +2,7 @@
 
 ## Every hive must support this api: [api v1]
 
-1. `RunWorker(int64 id, object[] input) -> none` \
+1. `RunWorker(int64 id, object[] input) -> object[]` \
     Run worker `id` on this hive using `input` as inputs
 1. `TransferWorker(int64 id, object[] input, byte[] state?) -> none` \
     [maybe this is too hard? - one can not implement this]
@@ -15,7 +15,7 @@
     Used to get value on objects, belonging to this hive
 1. `QueryHive() -> statistics of hive usage` \
     Used to distribute payload between all computers of network
-1. `Connect(ipaddress/someelse) -> none` \
+1. `Connect(ipaddress/someelse) -> clientID / some other IDs` \
     Connect new hive as neibour
 1. `...` \
     Some functions to disconnect hive?

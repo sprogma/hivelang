@@ -1,0 +1,109 @@
+﻿@page "/chat"
+@rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
+@using Microsoft.AspNetCore.SignalR.Client
+@using app1.Shared.Types
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<PageTitle>Chat</PageTitle>
+
+<div class="form-group">
+    <label>
+        User:
+        <input @bind="userInput" />
+    </label>
+</div>
+<div class="form-group">
+    <label>
+        Message:
+        <input @bind="messageInput" size="50" />
+    </label>
+</div>
+<button @onclick="Connect" disabled="@(!IsConnected)">Connect</button>
+<button @onclick="Query" disabled="@(!IsConnected)">Query</button>
+
+<button @onclick="Click" disabled="@(!IsConnected)">Click</button>
+
+<hr>
+
+<ul id="messagesList">
+    @foreach (var message in messages)
+    {
+        <li>@message</li>
+    }
+</ul>
+
+@code {
+    private HubConnection? hubConnection;
+    private List<string> messages = [];
+    private string? userInput;
+    private string? messageInput;
+
+    private ulong hiveId = 0;
+    public bool IsConnected => hubConnection?.State == HubConnectionState.Connected;
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/hivehub"))
+            .Build();
+
+        hubConnection.On<string, string>("ReceiveMessage", (user, message) =>
+        {
+            var encodedMsg = $"{user}: {message}";
+            messages.Add(encodedMsg);
+            InvokeAsync(StateHasChanged);
+        });
+
+        hubConnection.On("QueryHive", async () =>
+        {
+            var res = new QueryHiveResult(0, Random.Shared.NextDouble(), Random.Shared.NextDouble());
+            messages.Add($"answered with {res}.");
+            await hubConnection.InvokeAsync("GetQueryResults", res);
+            _ = InvokeAsync(StateHasChanged);
+        });
+
+        await hubConnection.StartAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+
+    private async Task Connect()
+    {
+        if (!IsConnected || hubConnection is null)
+        {
+            await JS.InvokeVoidAsync("alert", "Error: hub connection failed.");
+            return;
+        }
+        hiveId = await hubConnection.InvokeAsync<ulong>("GetMyId");
+        await JS.InvokeVoidAsync("alert", $"Connected! this client get id {hiveId}");
+    }
+
+    private async Task Query()
+    {
+        if (!IsConnected || hubConnection is null)
+        {
+            await JS.InvokeVoidAsync("alert", "Error: hub connection failed.");
+            return;
+        }
+        var results = await hubConnection.InvokeAsync<QueryHiveResult[]>("QueryHive");
+        messages.Add(string.Join("<br>", results.Select(x => $"Hive {x.ClientId} [load {x.Payload}/{x.Potential}]")));
+    }
+
+
+    private async Task Click()
+    {
+        if (hubConnection is not null)
+        {
+            await JS.InvokeVoidAsync("alert", "Click!");
+        }
+    }
+
+}

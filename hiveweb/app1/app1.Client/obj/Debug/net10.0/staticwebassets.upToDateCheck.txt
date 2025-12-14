@@ -1,0 +1,4 @@
+wwwroot\appsettings.Development.json
+wwwroot\appsettings.json
+D:\mipt\lang2\hiveweb\app1\app1.Client\wwwroot\appsettings.Development.json
+D:\mipt\lang2\hiveweb\app1\app1.Client\wwwroot\appsettings.json

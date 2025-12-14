@@ -1,0 +1,9 @@
+*.exe
+*.o
+*.dll
+*.a
+*.lib
+*.so
+a
+*.wasm
+*.gz
