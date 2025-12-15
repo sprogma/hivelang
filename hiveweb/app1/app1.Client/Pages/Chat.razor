@@ -22,6 +22,7 @@
 </div>
 <button @onclick="Connect" disabled="@(!IsConnected)">Connect</button>
 <button @onclick="Query" disabled="@(!IsConnected)">Query</button>
+<button @onclick="GetCode" disabled="@(!IsConnected)">GetCode</button>
 
 <button @onclick="Click" disabled="@(!IsConnected)">Click</button>
 
@@ -84,6 +85,20 @@
         }
         hiveId = await hubConnection.InvokeAsync<ulong>("GetMyId");
         await JS.InvokeVoidAsync("alert", $"Connected! this client get id {hiveId}");
+    }
+
+    private async Task GetCode()
+    {
+        if (!IsConnected || hubConnection is null)
+        {
+            await JS.InvokeVoidAsync("alert", "Error: hub connection failed.");
+            return;
+        }
+        var results = await hubConnection.InvokeAsync<CodeProgram>("GetCode");
+        foreach (var msg in results.Workers)
+        {
+            messages.Add(string.Join("<br>", msg.Value.Code.Select(x => $"[{x.Type}] {string.Join("", x.Data)}")));
+        }
     }
 
     private async Task Query()

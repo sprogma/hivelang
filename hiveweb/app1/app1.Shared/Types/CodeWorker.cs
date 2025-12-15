@@ -57,6 +57,7 @@ namespace app1.Shared.Types
         LOAD_STRING,
         LOAD_ARRAY,
         ARRAY_INDEX,
+        ARRAY_SET_INDEX,
         VARIABLE,
         QUERY,
         PUSH,
@@ -69,6 +70,10 @@ namespace app1.Shared.Types
         BAND, BNOT, BOR, BXOR,
 
         LT, LE, GT, GE, EQ, NE,
+
+        JMP, JZ, JNZ,
+
+        CALL,
     }
 
     public class Opcode(OpcodeType type, long[] data)
@@ -77,61 +82,33 @@ namespace app1.Shared.Types
         public long[] Data { get; set; } = data;
     }
 
-    public class Expression(Opcode[] code, long? result)
+    public class CodeWorker(long id, long[] inputs, long[] outputs)
     {
-        public Opcode[] Code { get; set; } = code;
-        public long? Result { get; set; } = result;
-    }
-
-    public class StatementBase
-    { }
-
-    public class StatementBlock(CodeBlock block) : StatementBase
-    {
-        public CodeBlock Block { get; set; } = block;
-    }
-
-    public class StatementLoop(CodeBlock body, Expression guard) : StatementBase
-    {
-        public CodeBlock Body { get; set; } = body;
-        public Expression Guard { get; set; } = guard;
-    }
-
-    public class StatementExpression(Expression expression) : StatementBase
-    {
-        public Expression Expression { get; set; } = expression;
-    }
-
-    public class StatementCall(long worker, long inputs, long outputs) : StatementBase
-    {
-        public long Worker { get; set; } = worker;
-        public long Inputs { get; set; } = inputs;
-        public long Outputs { get; set; } = outputs;
-    }
-
-    public class StatementBreak : StatementBase { }
-
-    public class StatementMatch(Expression expression, long?[] defaults, Expression[] literals, CodeBlock[] blocks) : StatementBase
-    {
-        public Expression Expression { get; set; } = expression;
-        public long?[] Defaults { get; set; } = defaults;
-        public Expression[] Literals { get; set; } = literals;
-        public CodeBlock[] Blocks { get; set; } = blocks;
-    }
-
-    public class CodeBlock(Dictionary<long, Variable> vars, StatementBase[] code)
-    {
-        public Dictionary<long, Variable> Vars { get; set; } = vars;
-        public StatementBase[] Code { get; set; } = code;
-    }
-
-    public class CodeWorker(long id, Dictionary<long, string> strings, long[] inputs, long[] outputs, CodeBlock body)
-    {
+        [JsonIgnore]
+        public SortedSet<long> freeTemps = [];
+        [JsonIgnore]
+        public long allocatedTemps = 0;
         public long Id { get; set; } = id;
-        public Dictionary<long, string> Strings { get; set; } = strings;
+        public Dictionary<long, string> Strings { get; set; } = [];
         public long[] Inputs { get; set; } = inputs;
         public long[] Outputs { get; set; } = outputs;
-        public CodeBlock Body { get; set; } = body;
+        public List<Opcode> Code { get; set; } = [];
+
+        public long GetTemp()
+        {
+            if (freeTemps.Count == 0)
+            {
+                return allocatedTemps++;
+            }
+            long res = freeTemps.First();
+            freeTemps.Remove(res);
+            return res;
+        }
+
+        public void FreeTemp(long tmp)
+        {
+            freeTemps.Add(tmp);
+        }
     }
 
     public class CodeProgram()

@@ -32,6 +32,11 @@ public class HiveHub : Hub
         }
     }
 
+    public async Task<CodeProgram> GetCode()
+    {
+        return Server.GetCode();
+    }
+
     public async Task<byte[]> RunWorker(string worker, byte[] input)
     {
         if (ConnectedUsers.TryGetValue(Context.ConnectionId, out ulong clientId))

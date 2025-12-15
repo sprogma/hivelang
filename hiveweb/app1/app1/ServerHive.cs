@@ -28,15 +28,15 @@ namespace app1
         private readonly IHubContext<HiveHub> hubContext;
         private CancellationTokenSource? runToken;
         private Task? backgroundLoopTask;
-        private CodeProgram workers;
+        private CodeProgram program;
 
         private Dictionary<ulong, ClientHiveInfo> clients = [];
         private ulong nextClientId;
 
-        public ServerHive(IHubContext<HiveHub> hubContext, CodeProgram workers)
+        public ServerHive(IHubContext<HiveHub> hubContext, CodeProgram program)
         {
             this.hubContext = hubContext;
-            this.workers = workers;
+            this.program = program;
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
@@ -105,6 +105,11 @@ namespace app1
             }
 
             return newId;
+        }
+
+        public CodeProgram GetCode()
+        {
+            return program;
         }
 
         public async Task<QueryHiveResult[]> Query(ulong excludeClientId)
