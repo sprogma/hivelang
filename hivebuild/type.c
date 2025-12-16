@@ -37,7 +37,7 @@ struct type *get_expr_type(struct program *p, struct expression *e)
         case EXPR_VARIABLE:
             return ((struct variable *)e->pdata)->type;
         case EXPR_LITERAL_INT:
-            return get_base_type("i32");
+            return get_base_type("i64");
         case EXPR_LITERAL_STRING:
             return get_complex_type(VAR_ARRAY, get_base_type("byte"));
         case EXPR_LITERAL_ARRAY:

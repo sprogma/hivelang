@@ -229,6 +229,7 @@ namespace app1
                         if (isDefault)
                         {
                             resultVar = obj["var"]?.GetValue<long>() ?? throw new Exception("Error: Default variable key is corrupted");
+                            worker.Code.Add(new Opcode(OpcodeType.PUSH_VARIABLE, [resultVar, matchSubexpr]));
                         }
                         else
                         {
@@ -338,7 +339,7 @@ namespace app1
             }
         }
 
-        public CodeWorker BuildWorker(long id, long[] inputs, long[] outputs, JsonObject code)
+        public CodeWorker BuildWorker(long id, long[] inputs, (long, VarType)[] outputs, JsonObject code)
         {
             var result = new CodeWorker(id, inputs, outputs);
             /* get code to load inputs */
@@ -437,7 +438,7 @@ namespace app1
                     throw new Exception("Error: workers code doesn't exists");
                 }
 
-                result.Workers[keyLong] = BuildWorker(keyLong, inputs, outputs, code);
+                result.Workers[keyLong] = BuildWorker(keyLong, inputs, outputs.Select(x => (x, result.Types[x])).ToArray(), code);
             }
 
             return result;

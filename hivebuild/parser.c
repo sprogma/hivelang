@@ -401,9 +401,13 @@ void validate_expression(const char *s, struct expression *expr)
                 validate_expression(s, expr->childs[1]);
                 struct type *t1 = get_expr_type(context.result, expr->childs[0]);
                 struct type *t2 = get_expr_type(context.result, expr->childs[1]);
+                if (t1->type == VAR_SCALAR && t2->type == VAR_SCALAR)
+                {
+                    return;
+                }
                 if (t1 != t2)
                 {
-                    log_error(s, "Error: Operator applied to 2 different types\n");
+                    log_error(s, "Error: Operator applied to 2 different types [and types aren't both scalars]\n");
                 }
                 return;
             }

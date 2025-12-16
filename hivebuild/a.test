@@ -1,18 +1,15 @@
 
-(i32 a; i32 b)worker(i32? y)
+(i64 a; i64 b)worker(i64? y)
 {
-    decl i32 t;
+    decl i64[] z;
+    z <- i64:10;
+    decl i64 t;
     t <- 0;
-    while a <= b
+    while t < ?z
     {
-        match (1)
-        {
-            1 : a % 2 = 0 {
-                t <- t + a;
-            }
-        }
-        a <- a + 1;
+        z[t] <- t;
+        t <- t + 1;
     }
-    y <- t;
+    y <- z[2] + z[5];
 }
 
