@@ -339,15 +339,16 @@ namespace app1
             }
         }
 
-        public CodeWorker BuildWorker(long id, long[] inputs, (long, VarType)[] outputs, JsonObject code)
+        public CodeWorker BuildWorker(long id, long[] inputs, long[] outputs, JsonObject code)
         {
-            var result = new CodeWorker(id, inputs, outputs);
+            var result = new CodeWorker(id, inputs, []);
             /* get code to load inputs */
             for (int i = 0; i < inputs.Length; i++)
             {
                 result.Code.Add(new Opcode(OpcodeType.LOAD_INPUT, [inputs[i], i]));
             }
             BuildCode(result, code);
+            result.Outputs
             return result;
         }
 
@@ -438,7 +439,7 @@ namespace app1
                     throw new Exception("Error: workers code doesn't exists");
                 }
 
-                result.Workers[keyLong] = BuildWorker(keyLong, inputs, outputs.Select(x => (x, result.Types[x])).ToArray(), code);
+                result.Workers[keyLong] = BuildWorker(keyLong, inputs, outputs, code);
             }
 
             return result;
