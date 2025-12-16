@@ -143,6 +143,16 @@ namespace app1.Shared.Types
     {
         [JsonIgnore]
         public VarType Type = type;
+
+        public string Encode()
+        {
+            return ""; // TODO;
+        }
+
+        public static ObjectBase Decode(string data)
+        {
+            return null;
+        }
     }
 
     public class ObjectScalar(VarType type, byte[] value) : ObjectBase(type)

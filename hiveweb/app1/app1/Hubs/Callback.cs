@@ -6,7 +6,7 @@ namespace BlazorSignalRApp.Hubs;
 
 public class HiveHub : Hub
 {
-    static private Dictionary<string, ulong> ConnectedUsers = [];
+    static private Dictionary<string, long> ConnectedUsers = [];
 
     private readonly ServerHive Server;
 
@@ -17,7 +17,7 @@ public class HiveHub : Hub
 
     public override async Task OnConnectedAsync()
     {
-        ulong newId = await Server.AddClient();
+        long newId = await Server.AddClient();
         Console.WriteLine($"Get event: Connect user id = {Context.ConnectionId} get id = {newId}");
         ConnectedUsers[Context.ConnectionId] = newId;
     }
@@ -38,32 +38,24 @@ public class HiveHub : Hub
         return codeProgram;
     }
 
-    public async Task<byte[]> RunWorker(string worker, byte[] input)
+    public async Task GetObject(long objectId, long parameter)
     {
-        if (ConnectedUsers.TryGetValue(Context.ConnectionId, out ulong clientId))
-        {
-            Console.WriteLine($"Call RunWorker by {clientId} name {worker}, args={BitConverter.ToString(input)}");
-            return [];
-        }
-        return [];
-    }
-
-    public async Task GetObject(ulong objectId, long parameter)
-    {
-        if (ConnectedUsers.TryGetValue(Context.ConnectionId, out ulong clientId))
+        if (ConnectedUsers.TryGetValue(Context.ConnectionId, out long clientId))
         {
             Console.WriteLine($"Call GetObject by {clientId} object {objectId}, parameter={parameter}");
+
+            /* get node with this object */
         }
     }
 
-    public async Task<ulong> GetMyId()
+    public async Task<long> GetMyId()
     {
         return ConnectedUsers[Context.ConnectionId];
     }
 
     public async Task<QueryHiveResult[]> QueryHive()
     {
-        if (ConnectedUsers.TryGetValue(Context.ConnectionId, out ulong clientId))
+        if (ConnectedUsers.TryGetValue(Context.ConnectionId, out long clientId))
         {
             Console.WriteLine($"Call QueryHive by {clientId}");
             return await Server.Query(clientId);
@@ -73,7 +65,7 @@ public class HiveHub : Hub
 
     public async Task GetQueryResults(QueryHiveResult result)
     {
-        if (ConnectedUsers.TryGetValue(Context.ConnectionId, out ulong clientId))
+        if (ConnectedUsers.TryGetValue(Context.ConnectionId, out long clientId))
         {
             Console.WriteLine($"Recieve GetQueryResults by {clientId} [data: {result}]");
             await Server.GetQueryResults(clientId, result);

@@ -1,20 +1,15 @@
 
-(i64 a; i64 b)pow(i64? res)
+
+(i64 a)fib(i64? res)
 {
-    decl i64 t;
-    t <- 1;
-    while b > 0
+    match (a)
     {
-        t <- t * a;
-        b <- b - 1;
+        0 { res <- 0; }
+        1 { res <- 1; }
+        default t : a > 1 {
+            ~ (t - 1)fib(res1);
+            ~ (t - 2)fib(res2);
+            res <- ?res1 + ?res2;
+        }
     }
-    res <- t;
 }
-
-(i64 a; i64 b)worker(i64? y)
-{
-    ~ (a + 1, b + 1)pow(t1);
-    ~ (a, b)pow(t2);
-    y <- ?t1 + ?t2;
-}
-

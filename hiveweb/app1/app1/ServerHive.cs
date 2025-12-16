@@ -6,12 +6,12 @@ namespace app1
 {
     public class ClientHiveInfo
     {
-        public ulong id;
+        public long id;
 
         public double Payload { get; private set; }
         public double Potential { get; private set; }
 
-        public ClientHiveInfo(ulong id)
+        public ClientHiveInfo(long id)
         {
             this.id = id;
         }
@@ -30,8 +30,8 @@ namespace app1
         private Task? backgroundLoopTask;
         private CodeProgram program;
 
-        private Dictionary<ulong, ClientHiveInfo> clients = [];
-        private ulong nextClientId;
+        private Dictionary<long, ClientHiveInfo> clients = [];
+        private long nextClientId;
 
         public ServerHive(IHubContext<HiveHub> hubContext, CodeProgram program)
         {
@@ -78,7 +78,7 @@ namespace app1
                 await Task.Delay(3000, runToken);
             }
         }
-        public async Task GetQueryResults(ulong clientId, QueryHiveResult result)
+        public async Task GetQueryResults(long clientId, QueryHiveResult result)
         {
             lock (clients)
             {
@@ -89,14 +89,14 @@ namespace app1
             }
         }
 
-        public async Task RemoveClient(ulong id)
+        public async Task RemoveClient(long id)
         {
             clients.Remove(id);
         }
 
-        public async Task<ulong> AddClient()
+        public async Task<long> AddClient()
         {
-            ulong newId;
+            long newId;
 
             lock (clients)
             {
@@ -112,7 +112,7 @@ namespace app1
             return program;
         }
 
-        public async Task<QueryHiveResult[]> Query(ulong excludeClientId)
+        public async Task<QueryHiveResult[]> Query(long excludeClientId)
         {
             lock (clients)
             {

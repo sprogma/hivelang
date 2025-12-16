@@ -193,7 +193,7 @@ namespace app1
 
                     BuildCode(worker, loopBodyObj);
 
-                    worker.Code[curPos].Data[0] = worker.Code.Count + 1;
+                    worker.Code[curPos].Data[0] = worker.Code.Count;
 
                     long loopGuard = BuildExpression(worker, loopGuardObj);
 
