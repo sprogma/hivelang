@@ -44,8 +44,91 @@
     private VarType? i64Type;
     private VarType? byteType;
 
+    private Dictionary<long, LinkObjectBase> objects = [];
+    private Queue<RunningProgram> runningPrograms = [];
+    private Queue<long> requests = [];
+    private Dictionary<long, Queue<RunningProgram>> queues = [];
+
     private ulong hiveId = 0;
     public bool IsConnected => hubConnection?.State == HubConnectionState.Connected;
+
+    private long GetNewObjectId()
+    {
+        return objects.Count + 1;
+    }
+
+    private void SetObject(long id, long param, ObjectBase value)
+    {
+        switch (objects[id])
+        {
+            case LinkObjectArray loa:
+                loa.Items[param] = value;
+                break;
+            case LinkObjectPipe lope:
+                {
+                    if (queues.TryGetValue(id, out var waitList))
+                    {
+                        if (waitList.Count > 0)
+                        {
+                            runningPrograms.Enqueue(waitList.Dequeue());
+                        }
+                    }
+                    lope.Pipe.Enqueue(value);
+                }
+                break;
+            case LinkObjectPromise lopr:
+                {
+                    if (queues.TryGetValue(id, out var waitList))
+                    {
+                        foreach (var prog in waitList)
+                        {
+                            runningPrograms.Enqueue(prog);
+                        }
+                        waitList.Clear();
+                    }
+                    lopr.Value = value;
+                }
+                break;
+        }
+    }
+
+    private ObjectBase? GetObject(RunningProgram program, long id, long param)
+    {
+        if (objects.TryGetValue(id, out var value))
+        {
+            switch (value)
+            {
+                case LinkObjectArray loa:
+                    if (param == -1)
+                    {
+                        return new ObjectScalar(i64Type!, BitConverter.GetBytes(loa.Items.LongLength));
+                    }
+                    return loa.Items[param];
+                case LinkObjectPipe lope:
+                    return lope.Pipe.Dequeue();
+                case LinkObjectPromise lopr:
+                    if (lopr.Value is null)
+                    {
+                        if (!queues.TryGetValue(id, out var queue))
+                        {
+                            queues[id] = queue = new();
+                        }
+                        queue.Enqueue(program);
+                        return null;
+                    }
+                    return lopr.Value;
+            }
+        }
+        /* add request */
+        {
+            if (!queues.TryGetValue(id, out var queue))
+            {
+                queues[id] = queue = new();
+            }
+            queue.Enqueue(program);
+        }
+        return null;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -130,15 +213,48 @@
             await JS.InvokeVoidAsync("alert", "code is null!");
             return;
         }
-        (RunningProgram? prg, ObjectBase[]? output) = await PrepareWorker(2,
-                                                     [new ObjectScalar(code.Types.Values.First(x => x.Name == "i64"), [1, 0, 0, 0, 0, 0, 0, 0]),
-                                                      new ObjectScalar(code.Types.Values.First(x => x.Name == "i64"), [10, 0, 0, 0, 0, 0, 0, 0])]);
+        (RunningProgram? prg, ObjectBase[]? output) = await PrepareWorker(3,
+                                                     [new ObjectScalar(code.Types.Values.First(x => x.Name == "i64"), [3, 0, 0, 0, 0, 0, 0, 0]),
+                                                      new ObjectScalar(code.Types.Values.First(x => x.Name == "i64"), [4, 0, 0, 0, 0, 0, 0, 0])]);
         if (prg is not null && output is not null)
         {
-            await RunWorker(prg);
+            var waitStart = DateTime.UtcNow;
+            while (runningPrograms.Count > 0 || queues.Any(x => x.Value.Count > 0))
+            {
+                if (runningPrograms.Count > 0)
+                {
+                    RunningProgram cur = runningPrograms.Dequeue();
+                    switch (await RunWorker(cur))
+                    {
+                        case ResultCode.HANG:
+                            runningPrograms.Enqueue(cur);
+                            break;
+                        case ResultCode.QUEUED:
+                            break;
+                        case ResultCode.OK:
+                            break;
+                        case ResultCode.ERROR:
+                            throw new Exception("Error: worker returned ERROR result code");
+                    }
+                    waitStart = DateTime.UtcNow;
+                }
+                else
+                {
+                    var waitDuration = DateTime.UtcNow - waitStart;
+                    if (waitDuration > TimeSpan.FromSeconds(2))
+                    {
+                        bool res = await JS.InvokeAsync<bool>("confirm", $"Process was idle more than 2 seconds, do you want to cansel calculations?");
+                        if (res)
+                        {
+                            waitStart = DateTime.UtcNow;
+                            break;
+                        }
+                    }
+                }
+            }
 
-            string results = string.Join(" ", output);
-            await JS.InvokeVoidAsync("alert", $"As result, promise value now is {results}");
+            string results = string.Join(" ", output.Select(x => x switch { ObjectPipe pipe => objects[pipe.Id].ToString(), ObjectPromise promise => objects[promise.Id].ToString(), _ => x.ToString() }));
+            await JS.InvokeVoidAsync("alert", $"Result is : {results}");
         }
     }
 
@@ -151,28 +267,40 @@
         }
         var program = new RunningProgram(code.Workers[id], inputs);
         var output = new List<ObjectBase>();
-        foreach ((var varId, var type) in code.Workers[id].Outputs)
+        foreach ((long varId, long type) in Enumerable.Zip(code.Workers[id].Outputs, code.Workers[id].OutputsTypes))
         {
-            switch (type.Type)
+            switch (code.Types[type].Type)
             {
                 case TypeType.PROMISE:
-                    output.Add(program.Variables[varId] = new ObjectPromise(code.Types[type.Bases[0]]));
+                    {
+                        long objId = GetNewObjectId();
+                        objects[objId] = new LinkObjectPromise(code.Types[code.Types[type].Bases[0]]);
+                        output.Add(program.Variables[varId] = new ObjectPromise(code.Types[code.Types[type].Bases[0]], objId));
+                    }
                     break;
                 case TypeType.PIPE:
-                    output.Add(program.Variables[varId] = new ObjectPipe(code.Types[type.Bases[0]]));
+                    {
+                        long objId = GetNewObjectId();
+                        objects[objId] = new LinkObjectPipe(code.Types[code.Types[type].Bases[0]]);
+                        output.Add(program.Variables[varId] = new ObjectPipe(code.Types[code.Types[type].Bases[0]], objId));
+                    }
                     break;
                 default:
                     throw new Exception("Error: output type isn't promise or pipe");
             }
+        }
+        if (program != null)
+        {
+            runningPrograms.Enqueue(program);
         }
         return (program, output.ToArray());
     }
 
     private async Task<ResultCode> RunWorker(RunningProgram program)
     {
-        if (i64Type is null || byteType is null)
+        if (i64Type is null || byteType is null || code is null)
         {
-            await JS.InvokeVoidAsync("alert", "i64 or byte type is not found");
+            await JS.InvokeVoidAsync("alert", "i64 or byte type is not found, or code is null");
             return ResultCode.ERROR;
         }
 
@@ -214,7 +342,10 @@
                         long stringId = opcode.Data[1];
                         string str = program.Worker.Strings[stringId];
                         ObjectScalar[] data = System.Text.Encoding.UTF8.GetBytes(str).Select(x => new ObjectScalar(byteType, [x])).ToArray();
-                        program.Temp[destId] = new ObjectArray(byteType, data);
+
+                        long objId = GetNewObjectId();
+                        objects[objId] = new LinkObjectArray(byteType, data);
+                        program.Temp[destId] = new ObjectArray(byteType, objId);
                     }
                     break;
                 case OpcodeType.LOAD_ARRAY:
@@ -231,7 +362,10 @@
                             {
                                 long itemSize = code.Types[typeId].Bases[0];
                                 ObjectScalar[] data = Enumerable.Range(1, (int)size).Select(x => new ObjectScalar(code.Types[typeId], new byte[itemSize])).ToArray();
-                                program.Temp[destId] = new ObjectArray(code.Types[typeId], data);
+
+                                long objId = GetNewObjectId();
+                                objects[objId] = new LinkObjectArray(code.Types[typeId], data);
+                                program.Temp[destId] = new ObjectArray(code.Types[typeId], objId);
                             }
                             else
                             {
@@ -254,7 +388,9 @@
                                 byte[] temp = new byte[8];
                                 Buffer.BlockCopy(os.Value, 0, temp, 0, os.Value.Length);
                                 long index = BitConverter.ToInt64(temp);
-                                oa.Items[index] = program.Temp[valueId];
+
+                                /* call method to set by index */
+                                SetObject(oa.Id, index, program.Temp[valueId]);
                             }
                         }
                         program.Ip++;
@@ -272,7 +408,15 @@
                                 byte[] temp = new byte[8];
                                 Buffer.BlockCopy(os.Value, 0, temp, 0, os.Value.Length);
                                 long index = BitConverter.ToInt64(temp);
-                                program.Temp[destId] = oa.Items[index];
+
+                                /* call method to get by index */
+                                var res = program.AsyncResultValue ?? GetObject(program, oa.Id, index);
+                                if (res is null)
+                                {
+                                    return ResultCode.QUEUED;
+                                }
+                                program.AsyncResultValue = null;
+                                program.Temp[destId] = res;
                             }
                         }
                         program.Ip++;
@@ -282,21 +426,29 @@
                     {
                         long varId = opcode.Data[0];
                         long tempId = opcode.Data[1];
-                        switch (program.Temp[tempId])
+                        if (program.Variables.TryGetValue(varId, out var res) == false)
                         {
-                            case ObjectScalar os:
-                                program.Variables[varId] = program.Temp[tempId];
-                                break;
-                            case ObjectArray oa:
-                                program.Variables[varId] = program.Temp[tempId];
-                                break;
-                            case ObjectPromise ops:
-                                /* set it as signaling */
-                                ops.Value = program.Temp[tempId];
-                                break;
-                            case ObjectPipe ope:
-                                ope.Pipe.Enqueue(program.Temp[tempId]);
-                                break;
+                            program.Variables[varId] = program.Temp[tempId];
+                        }
+                        else
+                        {
+                            switch (program.Variables[varId])
+                            {
+                                case ObjectScalar os:
+                                    program.Variables[varId] = program.Temp[tempId];
+                                    break;
+                                case ObjectArray oa:
+                                    program.Variables[varId] = program.Temp[tempId];
+                                    break;
+                                case ObjectPromise ops:
+                                    /* call method to set by index */
+                                    SetObject(ops.Id, 0, program.Temp[tempId]);
+                                    break;
+                                case ObjectPipe ope:
+                                    /* call method to set by index */
+                                    SetObject(ope.Id, 0, program.Temp[tempId]);
+                                    break;
+                            }
                         }
                         program.Ip++;
                     }
@@ -361,24 +513,61 @@
                         switch (program.Temp[objectId])
                         {
                             case ObjectArray oa:
-                                program.Temp[destId] = new ObjectScalar(i64Type, BitConverter.GetBytes(oa.Items.LongLength));
+                                {
+                                    var res = program.AsyncResultValue ?? GetObject(program, oa.Id, -1);
+                                    if (res is null)
+                                    {
+                                        return ResultCode.QUEUED;
+                                    }
+                                    program.AsyncResultValue = null;
+                                    program.Temp[destId] = res;
+                                }
                                 break;
                             case ObjectPromise ops:
-                                if (ops.Value is null)
+                                /* call method to get by index */
                                 {
-                                    return ResultCode.HANG;
+                                    var res = program.AsyncResultValue ?? GetObject(program, ops.Id, 0);
+                                    if (res is null)
+                                    {
+                                        return ResultCode.QUEUED;
+                                    }
+                                    program.AsyncResultValue = null;
+                                    program.Temp[destId] = res;
                                 }
-                                program.Temp[destId] = ops.Value;
                                 break;
                             case ObjectPipe ope:
-                                if (ope.Pipe.Count == 0)
+                                /* call method to get by index */
                                 {
-                                    return ResultCode.HANG;
+                                    var res = program.AsyncResultValue ?? GetObject(program, ope.Id, 0);
+                                    if (res is null)
+                                    {
+                                        return ResultCode.QUEUED;
+                                    }
+                                    program.AsyncResultValue = null;
+                                    program.Temp[destId] = res;
                                 }
-                                program.Temp[destId] = ope.Pipe.Dequeue();
                                 break;
                             default:
                                 throw new Exception("Error: QUERY of not array, promise or pipe");
+                        }
+                        program.Ip++;
+                    }
+                    break;
+                case OpcodeType.CALL:
+                    {
+                        /* read inputs */
+                        long callId = opcode.Data[0];
+                        long inputsCount = code.Workers[callId].Inputs.Length;
+                        long outputsCount = code.Workers[callId].Outputs.Length;
+                        var inputs = opcode.Data[1..(int)(1+inputsCount)].Select(x => program.Temp[x]).ToArray();
+                        var outputs = await PrepareWorker(callId, inputs);
+                        if (outputs.Item1 is not null && outputs.outputs is not null)
+                        {
+                            /* call */
+                            foreach ((var num, var value) in Enumerable.Zip(opcode.Data[(int)(1+inputsCount)..], outputs.outputs))
+                            {
+                                program.Variables[num] = value;
+                            }
                         }
                         program.Ip++;
                     }

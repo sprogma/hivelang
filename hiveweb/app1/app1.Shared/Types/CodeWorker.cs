@@ -66,7 +66,7 @@ namespace app1.Shared.Types
         public long[] Data { get; set; } = data;
     }
 
-    public class CodeWorker(long id, long[] inputs, (long, VarType)[] outputs)
+    public class CodeWorker(long id, long[] inputs, long[] outputs, long[] outputsTypes)
     {
         [JsonIgnore]
         public SortedSet<long> freeTemps = [];
@@ -75,7 +75,8 @@ namespace app1.Shared.Types
         public long Id { get; set; } = id;
         public Dictionary<long, string> Strings { get; set; } = [];
         public long[] Inputs { get; set; } = inputs;
-        public (long, VarType)[] Outputs { get; set; } = outputs;
+        public long[] Outputs { get; set; } = outputs;
+        public long[] OutputsTypes { get; set; } = outputsTypes;
         public List<Opcode> Code { get; set; } = [];
 
         public long GetTemp()
@@ -95,12 +96,48 @@ namespace app1.Shared.Types
         }
     }
 
+
     public class CodeProgram()
     {
         public Dictionary<long, VarType> Types { get; set; } = [];
         public Dictionary<long, CodeWorker> Workers { get; set; } = [];
     }
 
+
+    public class LinkObjectBase(VarType type)
+    {
+        [JsonIgnore]
+        public VarType Type = type;
+    }
+    
+    public class LinkObjectArray(VarType type, ObjectBase[] items) : LinkObjectBase(type)
+    {
+        public ObjectBase[] Items { get; set; } = items;
+
+        public override string ToString()
+        {
+            return $"LinkObjectArray([{string.Join(", ", Items)}])";
+        }
+    }
+
+    public class LinkObjectPipe(VarType type) : LinkObjectBase(type)
+    {
+        public Queue<ObjectBase> Pipe { get; set; } = [];
+        public override string ToString()
+        {
+            return $"LinkObjectPipe(<{string.Join(", ", Pipe)}>)";
+        }
+    }
+
+    public class LinkObjectPromise(VarType type) : LinkObjectBase(type)
+    {
+        public ObjectBase? Value { get; set; }
+
+        public override string ToString()
+        {
+            return $"LinkObjectPromise({Value?.ToString() ?? "null"})";
+        }
+    }
 
     public class ObjectBase(VarType type)
     {
@@ -118,32 +155,31 @@ namespace app1.Shared.Types
         }
     }
 
-    public class ObjectPipe(VarType type) : ObjectBase(type)
+    public class ObjectPipe(VarType type, long id) : ObjectBase(type)
     {
-        public Queue<ObjectBase> Pipe { get; set; } = [];
+        public long Id { get; set; } = id;
         public override string ToString()
         {
-            return $"ObjectArray(<{string.Join(", ", Pipe)}>)";
+            return $"ObjectPipe(id={Id})";
         }
     }
 
-    public class ObjectPromise(VarType type) : ObjectBase(type)
+    public class ObjectPromise(VarType type, long id) : ObjectBase(type)
     {
-        public ObjectBase? Value { get; set; }
+        public long Id { get; set; } = id;
 
         public override string ToString()
         {
-            return $"ObjectPromise({Value?.ToString() ?? "null"})";
+            return $"ObjectPromise(id={Id})";
         }
     }
 
-    public class ObjectArray(VarType type, ObjectBase[] items) : ObjectBase(type)
+    public class ObjectArray(VarType type, long id) : ObjectBase(type)
     {
-        public ObjectBase[] Items { get; set; } = items;
-
+        public long Id { get; set; } = id;
         public override string ToString()
         {
-            return $"ObjectArray([{string.Join(", ", Items)}])";
+            return $"ObjectArray(id={Id})";
         }
     }
 
@@ -151,6 +187,7 @@ namespace app1.Shared.Types
     {
         ERROR,
         HANG,
+        QUEUED,
         OK,
     }
 
@@ -158,6 +195,8 @@ namespace app1.Shared.Types
     {
         [JsonIgnore]
         public CodeWorker Worker = worker;
+        [JsonIgnore]
+        public ObjectBase? AsyncResultValue;
         public long Ip {get; set;} = 0;
         public ObjectBase[] Inputs { get; set; } = inputs;
         public Dictionary<long, ObjectBase> Objects { get; set; } = [];

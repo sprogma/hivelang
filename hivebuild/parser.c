@@ -405,6 +405,10 @@ void validate_expression(const char *s, struct expression *expr)
                 {
                     return;
                 }
+                else
+                {
+                    log_error(s, "Error: Operator applied to not scalar type [unsupported for now]\n");
+                }
                 if (t1 != t2)
                 {
                     log_error(s, "Error: Operator applied to 2 different types [and types aren't both scalars]\n");

@@ -34,7 +34,8 @@ public class HiveHub : Hub
 
     public async Task<CodeProgram> GetCode()
     {
-        return Server.GetCode();
+        CodeProgram codeProgram = Server.GetCode();
+        return codeProgram;
     }
 
     public async Task<byte[]> RunWorker(string worker, byte[] input)

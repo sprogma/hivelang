@@ -1,6 +1,4 @@
 ﻿using app1.Shared.Types;
-using System.Buffers.Text;
-using System.Linq.Expressions;
 using System.Text.Json.Nodes;
 
 namespace app1
@@ -290,7 +288,7 @@ namespace app1
                     }
                     long[] outputs = ExtractLongArray(stmt?["outputs"]);
 
-                    worker.Code.Add(new Opcode(OpcodeType.CALL, [.. inputsTmps, .. outputs]));
+                    worker.Code.Add(new Opcode(OpcodeType.CALL, [workerId, .. inputsTmps, .. outputs]));
 
                     foreach (var id in inputsTmps)
                     {
@@ -307,7 +305,7 @@ namespace app1
                     throw new Exception("Error: unknown statement type");
             }
         }
-        public void BuildCode(CodeWorker worker, JsonObject code)
+        public Dictionary<long, Variable> BuildCode(CodeWorker worker, JsonObject code)
         {
             Dictionary<long, Variable> vars = [];
 
@@ -337,18 +335,20 @@ namespace app1
             {
                 BuildStatement(worker, stmt);
             }
+
+            return vars;
         }
 
-        public CodeWorker BuildWorker(long id, long[] inputs, long[] outputs, JsonObject code)
+        public CodeWorker BuildWorker(Dictionary<long, VarType> types, long id, long[] inputs, long[] outputs, JsonObject code)
         {
-            var result = new CodeWorker(id, inputs, []);
+            var result = new CodeWorker(id, inputs, outputs, []);
             /* get code to load inputs */
             for (int i = 0; i < inputs.Length; i++)
             {
                 result.Code.Add(new Opcode(OpcodeType.LOAD_INPUT, [inputs[i], i]));
             }
-            BuildCode(result, code);
-            result.Outputs
+            Dictionary<long, Variable> vars = BuildCode(result, code);
+            result.OutputsTypes = outputs.Select(x => vars[x].Type).ToArray();
             return result;
         }
 
@@ -403,14 +403,14 @@ namespace app1
                         break;
                     case 4:
                         {
-                            long? @base = value?["base"]?.GetValue<long?>() ?? throw new Exception("Error: Corrupted promise data");
-                            result.Types[keyLong] = new VarType(TypeType.PROMISE, "", [@base.Value]);
+                            long? @base = value?["base"]?.GetValue<long?>() ?? throw new Exception("Error: Corrupted pipe data");
+                            result.Types[keyLong] = new VarType(TypeType.PIPE, "", [@base.Value]);
                         }
                         break;
                     case 5:
                         {
-                            long? @base = value?["base"]?.GetValue<long?>() ?? throw new Exception("Error: Corrupted pipe data");
-                            result.Types[keyLong] = new VarType(TypeType.PIPE, "", [@base.Value]);
+                            long? @base = value?["base"]?.GetValue<long?>() ?? throw new Exception("Error: Corrupted promise data");
+                            result.Types[keyLong] = new VarType(TypeType.PROMISE, "", [@base.Value]);
                         }
                         break;
                     default:
@@ -439,7 +439,7 @@ namespace app1
                     throw new Exception("Error: workers code doesn't exists");
                 }
 
-                result.Workers[keyLong] = BuildWorker(keyLong, inputs, outputs, code);
+                result.Workers[keyLong] = BuildWorker(result.Types, keyLong, inputs, outputs, code);
             }
 
             return result;
