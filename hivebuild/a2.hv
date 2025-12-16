@@ -1,0 +1,5 @@
+
+(i32 a; i32 b)sum(i32? res)
+{
+    res <- a + b;
+}

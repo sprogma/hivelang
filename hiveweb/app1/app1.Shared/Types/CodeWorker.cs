@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace app1.Shared.Types
 {
@@ -10,43 +12,24 @@ namespace app1.Shared.Types
         public long Type { get; set; } = type;
     }
 
-    public class TypeBase
+
+    public enum TypeType
+    {
+        SCALAR,
+        CLASS,
+        RECORD,
+        ARRAY,
+        PIPE,
+        PROMISE,
+    }
+
+    public class VarType(TypeType type, string name, long[] bases)
     {
         [JsonIgnore]
         public long CachedSize = 0;
-    }
-
-    public class TypeScalar(string name, long size) : TypeBase
-    {
+        public TypeType Type { get; set; } = type;
         public string Name { get; set; } = name;
-        public long Size { get; set; } = size;
-    }
-
-    public class TypeArray(long basetype) : TypeBase
-    {
-        public long Base { get; set; } = basetype;
-    }
-
-    public class TypePipe(long basetype) : TypeBase
-    {
-        public long Base { get; set; } = basetype;
-    }
-
-    public class TypePromise(long basetype) : TypeBase
-    {
-        public long Base { get; set; } = basetype;
-    }
-
-    public class TypeClass(string name, long[] fields) : TypeBase
-    {
-        public string Name{ get; set; } = name;
-        public long[] Fields { get; set; } = fields;
-    }
-
-    public class TypeRecord(string name, long[] fields) : TypeBase
-    {
-        public string Name{ get; set; } = name;
-        public long[] Fields { get; set; } = fields;
+        public long[] Bases { get; set; } = bases;
     }
 
     public enum OpcodeType
@@ -57,10 +40,11 @@ namespace app1.Shared.Types
         LOAD_STRING,
         LOAD_ARRAY,
         ARRAY_INDEX,
-        ARRAY_SET_INDEX,
         VARIABLE,
         QUERY,
-        PUSH,
+
+        PUSH_ARRAY_INDEX,
+        PUSH_VARIABLE,
 
         // operators
         ADD, SUB, MUL, DIV, MOD,
@@ -113,7 +97,44 @@ namespace app1.Shared.Types
 
     public class CodeProgram()
     {
-        public Dictionary<long, TypeBase> Types { get; set; } = [];
+        public Dictionary<long, VarType> Types { get; set; } = [];
         public Dictionary<long, CodeWorker> Workers { get; set; } = [];
+    }
+
+
+    public class ObjectBase(VarType type)
+    {
+        [JsonIgnore]
+        public VarType Type = type;
+    }
+
+    public class ObjectScalar(VarType type, byte[] value) : ObjectBase(type)
+    {
+        public byte[] Value { get; set; } = value;
+    }
+
+    public class ObjectPipe(VarType type) : ObjectBase(type)
+    {
+        public Queue<long> Pipe { get; set; } = [];
+    }
+
+    public class ObjectPromise(VarType type) : ObjectBase(type)
+    {
+        public byte[]? Value { get; set; }
+    }
+
+    public class ObjectArray(VarType type, ObjectBase[] items) : ObjectBase(type)
+    {
+        public ObjectBase[] Items { get; set; } = items;
+    }
+
+    public class RunningProgram(CodeWorker worker)
+    {
+        [JsonIgnore]
+        public CodeWorker Worker = worker;
+        public long Ip {get; set;} = 0;
+        public Dictionary<long, ObjectBase> Objects { get; set; } = [];
+        public Dictionary<long, ObjectBase> Variables { get; set; } = [];
+        public Dictionary<long, ObjectBase> Temp { get; set; } = [];
     }
 }

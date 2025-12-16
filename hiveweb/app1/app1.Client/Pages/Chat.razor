@@ -40,6 +40,7 @@
     private List<string> messages = [];
     private string? userInput;
     private string? messageInput;
+    private CodeProgram? code;
 
     private ulong hiveId = 0;
     public bool IsConnected => hubConnection?.State == HubConnectionState.Connected;
@@ -94,10 +95,11 @@
             await JS.InvokeVoidAsync("alert", "Error: hub connection failed.");
             return;
         }
-        var results = await hubConnection.InvokeAsync<CodeProgram>("GetCode");
-        foreach (var msg in results.Workers)
+        code = await hubConnection.InvokeAsync<CodeProgram>("GetCode");
+        messages.Add(string.Join("<br>", code.Types.Values.Select(x => ($"[type {x.Name}]"))));
+        foreach (var msg in code.Workers)
         {
-            messages.Add(string.Join("<br>", msg.Value.Code.Select(x => $"[{x.Type}] {string.Join("", x.Data)}")));
+            messages.Add($"WORKER: {msg.Key}:" + string.Join("<br>", msg.Value.Code.Select(x => $"[{x.Type}] {string.Join("", x.Data)}")));
         }
     }
 
@@ -115,10 +117,164 @@
 
     private async Task Click()
     {
-        if (hubConnection is not null)
+        if (hubConnection is null)
         {
-            await JS.InvokeVoidAsync("alert", "Click!");
+            await JS.InvokeVoidAsync("alert", "Connection failed!");
+        }
+        if (code is null)
+        {
+            await JS.InvokeVoidAsync("alert", "code is null!");
+            return;
+        }
+        await RunWorker(2, [new ObjectScalar(code.Types.Values.First(x => x.Name == "i32"), [1, 0, 0, 0, 0, 0, 0, 0]),
+                            new ObjectScalar(code.Types.Values.First(x => x.Name == "i32"), [10, 0, 0, 0, 0, 0, 0, 0])]);
+    }
+
+    private async Task RunWorker(long id, ObjectBase[] inputs)
+    {
+        if (code is null)
+        {
+            await JS.InvokeVoidAsync("alert", "Load code before running");
+            return;
+        }
+        var program = new RunningProgram(code.Workers[id]);
+
+        while (program.Ip < program.Worker.Code.Count)
+        {
+            messages.Add($"{string.Join(" ", program.Variables.Values.Select(x => (x as ObjectScalar).Value[0]))}");
+            Opcode opcode = program.Worker.Code[(int)program.Ip];
+            switch (opcode.Type)
+            {
+                case OpcodeType.LOAD_INPUT:
+                    {
+                        long varId = opcode.Data[0];
+                        long inputId = opcode.Data[1];
+                        program.Variables[varId] = inputs[(int)inputId];
+                        program.Ip++;
+                    }
+                    break;
+                case OpcodeType.VARIABLE:
+                    {
+                        long tmpId = opcode.Data[0];
+                        long varId = opcode.Data[1];
+                        program.Temp[tmpId] = program.Variables[varId];
+                        program.Ip++;
+                    }
+                    break;
+                case OpcodeType.LOAD_INT:
+                    {
+                        long tmpId = opcode.Data[0];
+                        long value = opcode.Data[1];
+                        program.Temp[tmpId] = new ObjectScalar(code.Types.Values.First(x => x.Name == "i64"), BitConverter.GetBytes(value));
+                        program.Ip++;
+                    }
+                    break;
+                case OpcodeType.PUSH_VARIABLE:
+                    {
+                        long varId = opcode.Data[0];
+                        long tempId = opcode.Data[1];
+                        program.Variables[varId] = program.Temp[tempId];
+                        if (program.Temp[tempId] is ObjectScalar s)
+                        {
+                            messages.Add($"Result PUSH: {string.Join(" ", s.Value)}");
+                        }
+                        else
+                        {
+                            messages.Add($"Result PUSH: [type=] {program.Temp[tempId].Type}");
+                        }
+                        program.Ip++;
+                    }
+                    break;
+                case OpcodeType.ADD: await ArithmeticOpcode(program, opcode, (x, y) => x + y); break;
+                case OpcodeType.SUB: await ArithmeticOpcode(program, opcode, (x, y) => x - y); break;
+                case OpcodeType.MUL: await ArithmeticOpcode(program, opcode, (x, y) => x * y); break;
+                case OpcodeType.DIV: await ArithmeticOpcode(program, opcode, (x, y) => x / y); break;
+                case OpcodeType.MOD: await ArithmeticOpcode(program, opcode, (x, y) => x % y); break;
+                case OpcodeType.BAND: await ArithmeticOpcode(program, opcode, (x, y) => x & y); break;
+                case OpcodeType.BOR: await ArithmeticOpcode(program, opcode, (x, y) => x | y); break;
+                case OpcodeType.BXOR: await ArithmeticOpcode(program, opcode, (x, y) => x ^ y); break;
+                case OpcodeType.LT: await ArithmeticOpcode(program, opcode, (x, y) => x < y ? -1 : 0); break;
+                case OpcodeType.LE: await ArithmeticOpcode(program, opcode, (x, y) => x <= y ? -1 : 0); break;
+                case OpcodeType.GT: await ArithmeticOpcode(program, opcode, (x, y) => x > y ? -1 : 0); break;
+                case OpcodeType.GE: await ArithmeticOpcode(program, opcode, (x, y) => x >= y ? -1 : 0); break;
+                case OpcodeType.EQ: await ArithmeticOpcode(program, opcode, (x, y) => x == y ? -1 : 0); break;
+                case OpcodeType.NE: await ArithmeticOpcode(program, opcode, (x, y) => x != y ? -1 : 0); break;
+                case OpcodeType.JMP:
+                    {
+                        long dest = opcode.Data[0];
+                        program.Ip = dest;
+                    }
+                    break;
+                case OpcodeType.JNZ:
+                    {
+                        long dest = opcode.Data[0];
+                        long guard = opcode.Data[1];
+                        if (program.Temp[guard] is ObjectScalar scalar && scalar.Value.Any(x => x != 0))
+                        {
+                            program.Ip = dest;
+                        }
+                        else
+                        {
+                            program.Ip++;
+                        }
+                    }
+                    break;
+                case OpcodeType.JZ:
+                    {
+                        long dest = opcode.Data[0];
+                        long guard = opcode.Data[1];
+                        if (program.Temp[guard] is ObjectScalar scalar && scalar.Value.All(x => x == 0))
+                        {
+                            program.Ip = dest;
+                        }
+                        else
+                        {
+                            program.Ip++;
+                        }
+                    }
+                    break;
+                default:
+                    await JS.InvokeVoidAsync("alert", $"Unknown Opcode {opcode.Type}");
+                    program.Ip++;
+                    break;
+            }
+
         }
     }
 
+    private async Task ArithmeticOpcode(RunningProgram program, Opcode opcode, Func<long, long, long> operation)
+    {
+        long resId = opcode.Data[0];
+        long aId = opcode.Data[1];
+        long bId = opcode.Data[2];
+        if (program.Temp[aId] is ObjectScalar a &&
+            program.Temp[bId] is ObjectScalar b)
+        {
+            if (a.Value.Length == 8)
+            {
+                long result = operation(BitConverter.ToInt64(a.Value, 0), BitConverter.ToInt64(b.Value, 0));
+                program.Temp[resId] = new ObjectScalar(a.Type, BitConverter.GetBytes(result));
+            }
+            else if (a.Value.Length == 4)
+            {
+                int result = (int)operation(BitConverter.ToInt32(a.Value, 0), BitConverter.ToInt32(b.Value, 0));
+                program.Temp[resId] = new ObjectScalar(a.Type, BitConverter.GetBytes(result));
+            }
+            else if (a.Value.Length == 2)
+            {
+                short result = (short)operation(BitConverter.ToInt16(a.Value, 0), BitConverter.ToInt16(b.Value, 0));
+                program.Temp[resId] = new ObjectScalar(a.Type, BitConverter.GetBytes(result));
+            }
+            else if (a.Value.Length == 1)
+            {
+                byte result = (byte)operation(a.Value[0], b.Value[0]);
+                program.Temp[resId] = new ObjectScalar(a.Type, [result]);
+            }
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("alert", $"Error! arithmeric operation with not number type");
+        }
+        program.Ip++;
+    }
 }

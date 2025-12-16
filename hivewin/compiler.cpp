@@ -278,10 +278,10 @@ void compile_worker(struct hive *h, worker_id wk)
 
     end += sprintf(end, "long long stack[256][128] = {1};");
     end += sprintf(end, "int stack_ptr = 1;");
-    end += sprintf(end, "void ___chkstk_ms(void) { }");
-    end += sprintf(end, "void memset(void *a, int t, long long size) { ((void (*)(void *, int, long long))0x%p)(a, t, size); }", &memset);
+    // end += sprintf(end, "void ___chkstk_ms(void) { }");
+    // end += sprintf(end, "void memset(void *a, int t, long long size) { ((void (*)(void *, int, long long))0x%p)(a, t, size); }", &memset);
     end += sprintf(end, "void memcpy(void *a, void *b, long long size) { ((void (*)(void *, void *, long long))0x%p)(a, b, size); }", &memcpy);
-    end += sprintf(end, "void *malloc(long long size) { ((void *(*)(long long))0x%p)(size); }", &malloc);
+    end += sprintf(end, "void *malloc(long long size) { return ((void *(*)(long long))0x%p)(size); }", &malloc);
     end += sprintf(end, "void pop(void *b) { memcpy(b, stack[--stack_ptr], sizeof(*stack)); }");
     end += sprintf(end, "void push(void *b) { memcpy(stack[stack_ptr++], b, sizeof(*stack)); }");
     end += sprintf(end, "void QueryObject(long long a, long long param, void *b) { ((void (*)(long long, long long, void *))0x%p)(a, param, b); }", &ExpandObject);
@@ -336,7 +336,8 @@ void compile_worker(struct hive *h, worker_id wk)
     fclose(f);
 
     // system("clang-format tmp\\a.c");
-    system("gcc -fPIC -ftree-loop-distribute-patterns -fno-builtin -ffreestanding -nostdlib -nostartfiles -nodefaultlibs -o tmp\\wk.exe tmp\\a.c -Wno-builtin-declaration-mismatch");
+    // system("gcc -fPIC -ftree-loop-distribute-patterns -fno-builtin-functions -fno-builtin -ffreestanding -nostdlib -nostartfiles -nodefaultlibs -o tmp\\wk.exe tmp\\a.c -Wno-builtin-declaration-mismatch");
+    system("clang -O0 -shared -fno-builtin-functions -fno-builtin -ffreestanding -nostdlib -nostartfiles -nodefaultlibs -o tmp\\wk.exe tmp\\a.c");
     system("objcopy -O binary tmp\\res.exe code.bin");
     system("pwsh -c \"[void]((objdump -t .\\tmp\\wk.exe | sls worker) -match \'(\\w+)\\s+\\w+\\s*$\'); $Matches[1]\" >tmp\\res");
     FILE *resf = fopen("tmp\\res", "r");

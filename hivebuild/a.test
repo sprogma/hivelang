@@ -1,89 +1,18 @@
 
-(i32 a; i32 b)range(i32| y)
+(i32 a; i32 b)worker(i32? y)
 {
     decl i32 t;
-    t <- a;
-    while t <= b
+    t <- 0;
+    while a <= b
     {
-        y <- t;
-        t <- t + 1;
-    }
-}
-
-(i32| x)primes(i32| y)
-{
-    while (1)
-    {
-        decl i32 t;
-        t <- ?x;
-        decl i32 i;
-        i <- 2;
-        while i < t
+        match (1)
         {
-            match (1)
-            {
-                1 : t % i = 0 {break;}
-            }
-            i <- i + 1;
-        }
-        match i = t
-        {
-            0 {y <- t;}
-        }
-    }
-}
-
-(i32| x)factor(i32[]| y)
-{
-    while 1
-    {
-        decl i32 z;
-        z <- 0;
-        decl i32[] t;
-        t <- i32:50;
-        decl i32 i;
-        i <- ?x;
-        ~ (2, i)range(k);
-        ~ (k)primes(u);
-        while i <> 1
-        {
-            decl i32 d;
-            d <- ?u;
-            while i % d = 0
-            {
-                i <- i / d;
-                t[z] <- d;
-                z <- z + 1;
+            1 : a % 2 = 0 {
+                t <- t + a;
             }
         }
-        y <- t;
+        a <- a + 1;
     }
+    y <- t;
 }
-
-(byte[] x)atoi(i32? y) {}
-(i32 x)print() {}
-
-(byte[]| s)main(i32? res)
-{
-    decl i32| in;
-    ~ (in)factor(out);
-    while (1)
-    {
-        decl byte[] x;
-        x <- ?s;
-        ~ (x)atoi(y);
-        in <- ?y;
-        decl i32[] k;
-        k <- ?out;
-        decl i32 i;
-        i <- 0;
-        while (i < ?k)
-        {
-            ~ (k[i])print();
-            i <- i + 1;
-        }
-    }
-    res <- 0;
-}
-
 

@@ -85,7 +85,7 @@ namespace app1
                 if (to.ContainsKey("variable"))
                 {
                     long varId = to["variable"]?.GetValue<long>() ?? throw new Exception("Error: wrong push to variable");
-                    worker.Code.Add(new Opcode(OpcodeType.PUSH, [varId, fromId]));
+                    worker.Code.Add(new Opcode(OpcodeType.PUSH_VARIABLE, [varId, fromId]));
                     return fromId;
                 }
                 else if (to.ContainsKey("index"))
@@ -100,7 +100,7 @@ namespace app1
                     }
                     long arrayFromId = BuildExpression(worker, arrayFrom);
                     long arrayAtId = BuildExpression(worker, arrayAt);
-                    worker.Code.Add(new Opcode(OpcodeType.ARRAY_SET_INDEX, [arrayFromId, arrayAtId, fromId]));
+                    worker.Code.Add(new Opcode(OpcodeType.PUSH_ARRAY_INDEX, [arrayFromId, arrayAtId, fromId]));
                     worker.FreeTemp(arrayAtId);
                     return fromId;
                 }
@@ -199,7 +199,7 @@ namespace app1
 
                     long loopGuard = BuildExpression(worker, loopGuardObj);
 
-                    worker.Code.Add(new Opcode(OpcodeType.JNZ, [curPos, loopGuard]));
+                    worker.Code.Add(new Opcode(OpcodeType.JNZ, [curPos + 1, loopGuard]));
 
                     worker.FreeTemp(loopGuard);
                     break;
@@ -241,7 +241,7 @@ namespace app1
                             long temp = worker.GetTemp();
                             worker.Code.Add(new Opcode(OpcodeType.EQ, [temp, matchSubexpr, resultVar]));
                             fixups.Add(worker.Code.Count);
-                            worker.Code.Add(new Opcode(OpcodeType.JNZ, [0, temp]));
+                            worker.Code.Add(new Opcode(OpcodeType.JZ, [0, temp]));
                             worker.FreeTemp(resultVar);
                             worker.FreeTemp(temp);
                         }
@@ -250,7 +250,8 @@ namespace app1
                         if (var["guard"] is JsonObject guardObj)
                         {
                             long guard = BuildExpression(worker, guardObj);
-                            worker.Code.Add(new Opcode(OpcodeType.JNZ, [0, guard]));
+                            fixups.Add(worker.Code.Count);
+                            worker.Code.Add(new Opcode(OpcodeType.JZ, [0, guard]));
                             worker.FreeTemp(guard);
                         }
 
@@ -268,6 +269,7 @@ namespace app1
                             worker.Code[(int)pos].Data[0] = worker.Code.Count;
                         }
                     }
+                    worker.FreeTemp(matchSubexpr);
                     break;
 
                 case "call":
@@ -374,46 +376,45 @@ namespace app1
                         {
                             string? name = value?["scalar"]?.GetValue<string?>() ?? throw new Exception("Error: Corrupted scalar data");
                             long? size = value?["size"]?.GetValue<long?>() ?? throw new Exception("Error: Corrupted scalar data");
-                            result.Types[keyLong] = new TypeScalar(name, size.Value);
+                            result.Types[keyLong] = new VarType(TypeType.SCALAR, name, [size.Value]);
                         }
                         break;
                     case 1:
                         {
                             string? name = value?["class"]?.GetValue<string?>() ?? throw new Exception("Error: Corrupted class data");
                             long[]? fields = ExtractLongArray(value?["fields"]);
-                            result.Types[keyLong] = new TypeClass(name, fields);
+                            result.Types[keyLong] = new VarType(TypeType.CLASS, name, fields);
                         }
                         break;
                     case 2:
                         {
                             string? name = value?["record"]?.GetValue<string?>() ?? throw new Exception("Error: Corrupted record data");
                             long[]? fields = ExtractLongArray(value?["fields"]);
-                            result.Types[keyLong] = new TypeRecord(name, fields);
+                            result.Types[keyLong] = new VarType(TypeType.RECORD, name, fields);
                         }
                         break;
                     case 3:
                         {
                             long? @base = value?["base"]?.GetValue<long?>() ?? throw new Exception("Error: Corrupted array data");
-                            result.Types[keyLong] = new TypeArray(@base.Value);
+                            result.Types[keyLong] = new VarType(TypeType.ARRAY, "", [@base.Value]);
                         }
                         break;
                     case 4:
                         {
                             long? @base = value?["base"]?.GetValue<long?>() ?? throw new Exception("Error: Corrupted promise data");
-                            result.Types[keyLong] = new TypePromise(@base.Value);
+                            result.Types[keyLong] = new VarType(TypeType.PROMISE, "", [@base.Value]);
                         }
                         break;
                     case 5:
                         {
                             long? @base = value?["base"]?.GetValue<long?>() ?? throw new Exception("Error: Corrupted pipe data");
-                            result.Types[keyLong] = new TypePipe(@base.Value);
+                            result.Types[keyLong] = new VarType(TypeType.PIPE, "", [@base.Value]);
                         }
                         break;
                     default:
                         throw new Exception($"Error: types[{key}].type isn't enum value");
                 }
             }
-
 
             if (data["workers"] is not JsonObject workersObj)
             {
