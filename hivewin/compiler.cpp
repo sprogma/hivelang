@@ -1,10 +1,41 @@
 #include "stdio.h"
+#include "string.h"
 
 #include "runtime.hpp"
 #include "code.hpp"
 #include "dynamic.hpp"
 #include "context.hpp"
 #include "type.hpp"
+
+
+
+#define arraylen(x) (sizeof(x)/sizeof(*x))
+
+const char *registerNames[] = {
+    "rax",
+    "rbx",
+    "rcx",
+    "rdx",
+    "rsi",
+    "rdi",
+    // "rsp", // reserved for stack
+    // "rbp", // reerved for local storage pointer
+    "r8",
+    "r9",
+    "r10",
+    "r11",
+    "r12",
+    "r13",
+    "r14",
+    "r15",
+};
+
+struct expression_result
+{
+    char *buf;
+    char *bufEnd;
+    int64_t registersUsed; // ID of register there answer is stored
+};
 
 
 struct hive *create_hive(struct program *prg)
@@ -32,24 +63,48 @@ void allocate_memory_for_locals(struct context *ctx, struct block *code)
     }
 }
 
-
-char *generate_expression(char *buf, struct context *ctx, struct expression *e)
+#define OUTPUT(string, ...) result.bufEnd += sprintf(result.buf, "    " string "\n" __VA_OPT__(,) __VA_ARGS__)
+struct expression_result result_both(struct expression_result &x1, struct expression_result &x2)
 {
+    struct expression_result result;
+    if (x1.registersUsed > x2.registersUsed)
+    {
+        RESULT_FROM(x2, x1);
+    }
+    else if (x1.registersUsed < x2.registersUsed)
+    {
+        
+        RESULT_FROM(x1, x2);
+    }
+    else
+    return result;
+}
+struct expression_result generate_expression(struct context *ctx, struct expression *e)
+{
+    struct expression_result result;
+    
     switch (e->type)
     {
         case EXPR_LITERAL_INT:
-            buf += sprintf(buf, "rax[0] = %lld;", e->idata);
+            RESULT_NEW();
+            OUTPUT("mov rax, %lld", e->idata);
             break;
         case EXPR_LITERAL_STRING:
-            buf += sprintf(buf, "rax[0] = (long long)strdup(\"%s\");", (char *)e->pdata);
+            RESULT_NEW();
+            OUTPUT("CREATE_STRING rax, %lld, \"%s\"", strlen((char *)e->pdata), (char *)e->pdata);
             break;
         case EXPR_LITERAL_ARRAY:
-            buf = generate_expression(buf, ctx, e->childs[0]);
-            buf += sprintf(buf, "rax[0] = (long long)malloc(%lld * rax[0]);\n", ctx->h->program->types[e->idata]->cached_size);
+            struct expression_result res1 = generate_expression(ctx, e->childs[0]);
+            RESULT_FROM(res1);
+            OUTPUT("CREATE_ARRAY rax, type:%lld[of size %lld], rax", e->idata, ctx->h->program->types[e->idata]->cached_size);
             break;
         case EXPR_ARRAY_INDEX:
         {
-            buf = generate_expression(buf, ctx, e->childs[0]);
+            struct expression_result res1 = generate_expression(ctx, e->childs[0]);
+            struct expression_result res2 = generate_expression(ctx, e->childs[1]);
+            
+            RESULT_BOTH(res1, res2);
+            OUTPUT("mov rbx, rax", e->idata, ctx->h->program->types[e->idata]->cached_size);
             buf += sprintf(buf, "push(rax);");
             buf = generate_expression(buf, ctx, e->childs[1]);
             buf += sprintf(buf, "pop(rbx);");
